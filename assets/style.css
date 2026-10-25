@@ -1,0 +1,130 @@
+/* JEJAKRUTE — website pendamping. Identitas aplikasi: charcoal gelap + mint #17CE8F. */
+:root{
+  --bg:#101314; --bg2:#17191c; --card:#1d2126; --card2:#23272d; --line:#2c3138;
+  --txt:#f2f4f3; --mut:#9aa0a3; --mint:#17ce8f; --mint-d:#0e9c6b; --dark:#0b0f0e;
+  --amber:#f5b94a; --radius:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.6;font-size:16px}
+a{color:var(--mint);text-decoration:none}
+a:hover{text-decoration:underline}
+img{max-width:100%}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+
+/* Header */
+header.site{position:sticky;top:0;z-index:50;background:rgba(16,19,20,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:22px;padding:13px 0}
+.logo{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:1.6px;font-size:19px;color:#fff}
+.logo:hover{text-decoration:none}
+.logo .dot{width:9px;height:9px;border-radius:50%;background:var(--mint)}
+.logo .mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#1d2b26,var(--bg2));border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--mint);font-size:17px}
+nav.menu{display:flex;gap:18px;margin-left:auto;flex-wrap:wrap}
+nav.menu a{color:var(--txt);font-size:14.5px;font-weight:600}
+nav.menu a:hover,nav.menu a.aktif{color:var(--mint);text-decoration:none}
+.btn{display:inline-block;background:var(--mint);color:var(--dark)!important;font-weight:800;padding:10px 20px;border-radius:12px;font-size:14.5px;border:none;cursor:pointer}
+.btn:hover{background:#2fe0a3;text-decoration:none}
+.btn.ghost{background:transparent;color:var(--txt)!important;border:1px solid var(--line)}
+.btn.ghost:hover{border-color:var(--mint);color:var(--mint)!important}
+.btn.sm{padding:7px 14px;font-size:13px;border-radius:10px}
+.nav .btn{margin-left:6px}
+
+/* Hero */
+.hero{padding:72px 0 56px;background:radial-gradient(900px 420px at 85% -10%,rgba(23,206,143,.16),transparent 60%),linear-gradient(180deg,var(--bg2),var(--bg))}
+.hero .badge{display:inline-block;border:1px solid var(--mint);color:var(--mint);border-radius:99px;padding:4px 13px;font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase}
+.hero h1{font-size:44px;line-height:1.15;font-weight:900;margin:18px 0 14px;max-width:720px}
+.hero h1 .hl{color:var(--mint)}
+.hero p.sub{color:var(--mut);font-size:18px;max-width:640px;margin-bottom:28px}
+.hero .cta{display:flex;gap:12px;flex-wrap:wrap}
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:44px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px;min-width:150px;flex:1}
+.stat b{display:block;font-size:26px;color:#fff}
+.stat span{color:var(--mut);font-size:13px}
+
+/* Sections */
+section{padding:52px 0}
+section.alt{background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+h2{font-size:28px;font-weight:900;margin-bottom:8px}
+.lead{color:var(--mut);max-width:680px;margin-bottom:28px}
+.grid{display:grid;gap:16px}
+.grid.c3{grid-template-columns:repeat(3,1fr)}
+.grid.c2{grid-template-columns:repeat(2,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.card h3{font-size:17px;margin-bottom:7px;color:#fff}
+.card p{color:var(--mut);font-size:14.5px}
+.card .ic{font-size:22px;color:var(--mint);display:block;margin-bottom:10px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.pill{display:inline-block;border-radius:99px;padding:3px 11px;font-size:11.5px;font-weight:800;letter-spacing:.4px}
+.pill.kurasi{border:1px solid var(--mint);color:var(--mint)}
+.pill.dasar{border:1px solid var(--line);color:var(--mut)}
+.pill.belum{border:1px solid var(--amber);color:var(--amber)}
+.pill.verif{border:1px solid var(--mint);background:rgba(23,206,143,.12);color:var(--mint)}
+
+/* Katalog */
+.tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.tools input[type=search]{flex:1;min-width:220px;background:var(--card);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:11px 15px;font-size:15px}
+.tools select{background:var(--card);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:11px 12px;font-size:14.5px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:99px;padding:6px 15px;font-size:13.5px;font-weight:700;cursor:pointer}
+.chip.on{background:var(--mint);color:var(--dark);border-color:var(--mint)}
+.loc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.loc{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:6px}
+.loc:hover{border-color:var(--mint-d)}
+.loc h3{font-size:16.5px;color:#fff}
+.loc .meta{color:var(--mut);font-size:13px}
+.loc .atr{color:var(--mut);font-size:13.5px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.loc .foot{margin-top:auto;padding-top:10px;display:flex;justify-content:space-between;align-items:center}
+.loc .h{font-weight:800;color:#fff;font-size:14px}
+.empty{border:1px dashed var(--line);border-radius:var(--radius);padding:34px;text-align:center;color:var(--mut)}
+.count{color:var(--mut);font-size:14px;margin-bottom:14px}
+
+/* Detail */
+.detail-head{padding:44px 0 8px}
+.detail-head h1{font-size:34px;font-weight:900}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}
+.kv .cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kv .cell b{display:block;color:#fff;font-size:16px}
+.kv .cell span{color:var(--mut);font-size:12.5px;text-transform:uppercase;letter-spacing:.6px}
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--mint);border-radius:12px;padding:16px 18px;color:var(--mut);font-size:14.5px;margin:18px 0}
+.note b{color:var(--txt)}
+.src{color:var(--mut);font-size:12.5px;margin-top:8px}
+
+/* Rute komunitas */
+.route{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:7px}
+.route h3{color:#fff;font-size:16.5px}
+.route .meta{color:var(--mut);font-size:13.5px}
+.route .nums{display:flex;gap:18px;color:var(--txt);font-size:14px;font-weight:700}
+.route .foot{margin-top:auto;padding-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+
+/* Live share */
+.live-box{max-width:640px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px}
+.live-box label{font-weight:700;font-size:14px;display:block;margin-bottom:8px}
+.live-row{display:flex;gap:10px}
+.live-row input{flex:1;background:var(--bg2);border:1px solid var(--line);border-radius:12px;color:var(--txt);padding:11px 14px;font-size:15px}
+.pos{margin-top:22px;border-top:1px solid var(--line);padding-top:18px}
+.pos .big{font-size:20px;font-weight:900;color:#fff}
+.pos .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.pos .row span{color:var(--mut)}
+.msg{margin-top:16px;font-size:14.5px;color:var(--mut)}
+.msg.err{color:#ff8a7a}
+
+/* Footer */
+footer{border-top:1px solid var(--line);background:var(--bg2);padding:36px 0;margin-top:20px}
+footer .cols{display:grid;grid-template-columns:2fr 1fr 1fr;gap:24px}
+footer h4{font-size:14px;margin-bottom:10px;color:#fff}
+footer a{display:block;color:var(--mut);font-size:14px;margin-bottom:6px}
+footer p{color:var(--mut);font-size:13.5px}
+.copy{border-top:1px solid var(--line);margin-top:24px;padding-top:16px;color:var(--mut);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+@media (max-width:880px){
+  .grid.c3,.loc-grid{grid-template-columns:repeat(2,1fr)}
+  .kv{grid-template-columns:repeat(2,1fr)}
+  .hero h1{font-size:33px}
+  footer .cols{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .grid.c3,.grid.c2,.loc-grid,.split{grid-template-columns:1fr}
+  nav.menu{display:none}
+  .hero{padding:48px 0 40px}
+  section{padding:38px 0}
+}
