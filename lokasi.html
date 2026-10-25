@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detail Lokasi — JEJAKRUTE</title>
+<meta name="description" content="Detail lokasi gunung & wisata alam di JEJAKRUTE: ketinggian, wilayah, daya tarik, paket peta offline, dan Rute Komunitas.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%2317191c'/><path d='M28 68 L46 34 L58 54 L64 44 L76 68 Z' fill='%2317ce8f'/></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site"><div class="wrap nav">
+  <a class="logo" href="index.html"><span class="mark">▲</span>JEJAKRUTE<span class="dot"></span></a>
+  <nav class="menu">
+    <a href="index.html">Beranda</a><a href="katalog.html">Katalog</a><a href="rute-komunitas.html">Rute Komunitas</a><a href="live.html">Live Share</a><a href="donasi.html">Donasi</a>
+  </nav>
+  <a class="btn" href="https://github.com/FinOwi/jejakrute/releases/download/v0.18.1/JEJAKRUTE-Pratinjau-v0.18.1-arm64.apk">Unduh Aplikasi</a>
+</div></header>
+
+<div class="wrap">
+  <div class="detail-head" id="head"><p style="color:var(--mut)">Memuat lokasi…</p></div>
+  <div id="isi"></div>
+  <section style="padding-top:26px">
+    <h2 style="font-size:22px">Rute Komunitas di lokasi ini</h2>
+    <p class="lead" style="margin-bottom:18px">Rekaman yang dibagikan pendaki untuk lokasi ini. Rute berlabel "Belum Terverifikasi" belum lolos tinjauan moderator — selalu bandingkan dengan jalur resmi sebelum mengikuti.</p>
+    <div class="grid c2" id="ruteList"><p style="color:var(--mut)">Memuat rute…</p></div>
+  </section>
+  <p style="margin:10px 0 40px"><a href="katalog.html">← Kembali ke Katalog Nasional</a></p>
+</div>
+
+<footer><div class="wrap">
+  <div class="cols">
+    <div>
+      <a class="logo" href="index.html" style="margin-bottom:10px"><span class="mark">▲</span>JEJAKRUTE<span class="dot"></span></a>
+      <p>Aplikasi GPS pendaki &amp; wisata alam Indonesia. Rekam pendakianmu, pulang dengan selamat. Gratis dengan donasi — dikembangkan oleh FinOwi Id, Medan.</p>
+    </div>
+    <div><h4>Jelajah</h4><a href="katalog.html">Katalog Nasional</a><a href="rute-komunitas.html">Rute Komunitas</a><a href="live.html">Live Share</a></div>
+    <div><h4>Aplikasi</h4><a href="https://github.com/FinOwi/jejakrute/releases/latest">Unduh versi terbaru</a><a href="donasi.html">Donasi</a></div>
+  </div>
+  <div class="copy"><span>© 2026 FinOwi Id — JEJAKRUTE</span><span>Data katalog: sumber tunggal yang sama dengan aplikasi</span></div>
+</div></footer>
+
+<script src="assets/katalog-data.js"></script>
+<script src="assets/app.js"></script>
+<script>
+  const id=new URLSearchParams(location.search).get("id");
+  const l=(window.KATALOG||[]).find(x=>x.id===id);
+  const head=document.getElementById("head"), isi=document.getElementById("isi");
+  if(!l){
+    head.innerHTML='<h1>Lokasi tidak ditemukan</h1><p style="color:var(--mut)">Tautan ini tidak menunjuk ke lokasi mana pun di katalog. <a href="katalog.html">Buka katalog</a> untuk memilih lokasi.</p>';
+    document.getElementById("ruteList").innerHTML="";
+  } else {
+    document.title=l.nama+" — JEJAKRUTE";
+    const pilot=l.tingkat_data==="pilot-kurasi-mendalam";
+    head.innerHTML='<span class="pill '+(pilot?"kurasi":"dasar")+'">'+(pilot?"Jalur Terkurasi — Gunung Pilot":"Data Dasar Terverifikasi")+'</span>'
+      +'<h1 style="margin-top:12px">'+esc(l.nama)+'</h1>'
+      +'<p style="color:var(--mut)">'+esc(l.jenis)+' • '+esc(l.kabupaten_kota)+', '+esc(l.provinsi)+' • Wilayah '+esc(l.wilayah)+'</p>';
+    isi.innerHTML='<div class="kv">'
+      +'<div class="cell"><span>Ketinggian</span><b>'+(l.ketinggian_mdpl?Number(l.ketinggian_mdpl).toLocaleString("id-ID")+" mdpl":"—")+'</b></div>'
+      +'<div class="cell"><span>Jenis</span><b>'+esc(l.jenis)+'</b></div>'
+      +'<div class="cell"><span>Koordinat</span><b>'+Number(l.lat).toFixed(5)+", "+Number(l.lng).toFixed(5)+'</b></div>'
+      +'<div class="cell"><span>Tingkat data</span><b>'+(pilot?"Jalur Terkurasi":"Data Dasar")+'</b></div></div>'
+      +'<div class="card"><h3>Daya tarik</h3><p>'+esc(l.daya_tarik)+'</p>'
+      +(l.perkiraan?'<p style="margin-top:8px">Catatan: sebagian angka lokasi ini masih berstatus perkiraan antar-sumber dan dicatat terbuka sampai ada penetapan resmi.</p>':'')
+      +'<p class="src">Sumber: '+esc(l.sumber)+'</p></div>'
+      +(pilot
+        ? '<div class="note"><b>Paket peta offline tersedia di aplikasi.</b> Lokasi ini adalah gunung pilot JEJAKRUTE: paket peta vektor offline (kontur, jalur, pos, titik penting) dapat diunduh di aplikasi dan dipakai tanpa internet, bersama data jalur hasil kurasi mendalam. <a href="'+APK_URL+'">Unduh aplikasi</a> untuk memakai paketnya.</div>'
+        : '<div class="note"><b>Paket jalur menyusul.</b> Lokasi ini tampil dengan data dasar terverifikasi; paket jalur mendalamnya dibangun bergelombang per wilayah. Di aplikasi, kamu tetap bisa merekam pendakianmu di sini lewat mode Rekam Bebas dan membagikannya sebagai Rute Komunitas.</div>')
+      +'<p style="margin-top:14px"><a class="btn ghost sm" target="_blank" rel="noopener" href="https://www.google.com/maps?q='+l.lat+","+l.lng+'">Lihat di Google Maps</a></p>';
+
+    ambilRuteKomunitas(l.id).then(routes=>{
+      const el=document.getElementById("ruteList");
+      el.innerHTML=routes.length?routes.map(kartuRute).join("")
+        :'<div class="empty" style="grid-column:1/-1">Belum ada Rute Komunitas untuk lokasi ini. Rekam pendakianmu di aplikasi dan bagikan — jadilah kontributor pertamanya.</div>';
+    }).catch(()=>{
+      document.getElementById("ruteList").innerHTML='<div class="empty" style="grid-column:1/-1">Daftar rute belum bisa dimuat saat ini. Coba lagi nanti.</div>';
+    });
+  }
+</script>
+</body>
+</html>

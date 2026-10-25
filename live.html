@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Share — Pantau Posisi Pendaki | JEJAKRUTE</title>
+<meta name="description" content="Penampil Live Share JEJAKRUTE: keluarga dapat melihat posisi terakhir pendaki lewat tautan, tanpa memasang aplikasi.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%2317191c'/><path d='M28 68 L46 34 L58 54 L64 44 L76 68 Z' fill='%2317ce8f'/></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site"><div class="wrap nav">
+  <a class="logo" href="index.html"><span class="mark">▲</span>JEJAKRUTE<span class="dot"></span></a>
+  <nav class="menu">
+    <a href="index.html">Beranda</a><a href="katalog.html">Katalog</a><a href="rute-komunitas.html">Rute Komunitas</a><a href="live.html">Live Share</a><a href="donasi.html">Donasi</a>
+  </nav>
+  <a class="btn" href="https://github.com/FinOwi/jejakrute/releases/download/v0.18.1/JEJAKRUTE-Pratinjau-v0.18.1-arm64.apk">Unduh Aplikasi</a>
+</div></header>
+
+<section style="padding-top:44px"><div class="wrap">
+  <div class="live-box">
+    <h2 style="font-size:24px">Live Share — Posisi Pendaki</h2>
+    <p style="color:var(--mut);font-size:14.5px;margin-bottom:20px">Halaman ini untuk keluarga &amp; kontak darurat. Masukkan <b style="color:var(--txt)">token Live Share</b> yang dikirim pendaki dari aplikasinya — atau buka tautan Live Share yang kamu terima (token terisi otomatis). Kamu tidak perlu memasang aplikasi.</p>
+    <label for="token">Token Live Share</label>
+    <div class="live-row">
+      <input id="token" type="text" placeholder="mis. a1b2c3d4-…" autocomplete="off" spellcheck="false">
+      <button class="btn" id="btnLihat">Lihat Posisi</button>
+    </div>
+    <p class="msg" id="msg">Posisi diperbarui pendaki secara oportunistik setiap kali HP-nya mendapat sinyal — waktu pembaruan selalu ditampilkan agar kamu tahu seberapa segar posisi ini.</p>
+    <div class="pos" id="pos" style="display:none"></div>
+  </div>
+
+  <div style="max-width:640px;margin:22px auto 0">
+    <div class="note"><b>Belum punya token?</b> Token dibuat pendaki dari aplikasi JEJAKRUTE (fitur Live Share saat memulai pendakian) lalu dibagikan ke keluarga. Tautan Live Share selalu berbentuk halaman ini dengan token di alamatnya — pendaki cukup mengirim satu tautan.</div>
+    <div class="note" style="border-left-color:var(--amber)"><b>Penting:</b> posisi bisa tertinggal dari posisi sebenarnya bila pendaki berada di area tanpa sinyal. Bila pendaki melewati Batas Waktu Turun-nya dan belum menekan "Sudah Turun", kontak darurat menerima peringatan otomatis dari server beserta posisi terakhir yang tersinkron.</div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="cols">
+    <div>
+      <a class="logo" href="index.html" style="margin-bottom:10px"><span class="mark">▲</span>JEJAKRUTE<span class="dot"></span></a>
+      <p>Aplikasi GPS pendaki &amp; wisata alam Indonesia. Rekam pendakianmu, pulang dengan selamat. Gratis dengan donasi — dikembangkan oleh FinOwi Id, Medan.</p>
+    </div>
+    <div><h4>Jelajah</h4><a href="katalog.html">Katalog Nasional</a><a href="rute-komunitas.html">Rute Komunitas</a><a href="live.html">Live Share</a></div>
+    <div><h4>Aplikasi</h4><a href="https://github.com/FinOwi/jejakrute/releases/latest">Unduh versi terbaru</a><a href="donasi.html">Donasi</a></div>
+  </div>
+  <div class="copy"><span>© 2026 FinOwi Id — JEJAKRUTE</span><span>Akses publik hanya lewat token — data posisi tidak terbuka tanpa tautan</span></div>
+</div></footer>
+
+<script src="assets/app.js"></script>
+<script>
+  const inp=document.getElementById("token"), msg=document.getElementById("msg"), pos=document.getElementById("pos");
+  let timer=null, tokenAktif="";
+
+  function fmtWaktu(iso){
+    if(!iso) return "—";
+    const d=new Date(iso), now=new Date();
+    const tgl=d.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+    const jam=d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+    const mnt=Math.max(0,Math.round((now-d)/60000));
+    const umur=mnt<1?"baru saja":mnt<60?mnt+" menit lalu":Math.floor(mnt/60)+" jam "+(mnt%60)+" menit lalu";
+    return tgl+", "+jam+" ("+umur+")";
+  }
+
+  async function muat(token){
+    tokenAktif=token;
+    msg.className="msg"; msg.textContent="Mencari posisi…";
+    try{
+      const rows=await sbRpc("get_live_share",{p_token:token});
+      const r=Array.isArray(rows)?rows[0]:rows;
+      if(!r || r.lat==null || r.lng==null){
+        pos.style.display="none";
+        msg.className="msg err";
+        msg.textContent="Tautan tidak ditemukan, sudah tidak aktif, atau kedaluwarsa. Minta pendaki mengirim ulang tautan Live Share terbarunya dari aplikasi.";
+        if(timer){clearInterval(timer);timer=null}
+        return;
+      }
+      const nama=r.nama||r.username||"Pendaki JEJAKRUTE";
+      pos.style.display="block";
+      pos.innerHTML='<p class="big">'+esc(nama)+'</p>'
+        +'<div class="row"><span>Koordinat</span><b>'+Number(r.lat).toFixed(5)+", "+Number(r.lng).toFixed(5)+'</b></div>'
+        +(r.ele!=null?'<div class="row"><span>Ketinggian</span><b>'+Math.round(r.ele)+' mdpl</b></div>':"")
+        +'<div class="row"><span>Terakhir diperbarui</span><b>'+fmtWaktu(r.diperbarui_pada)+'</b></div>'
+        +(r.kedaluwarsa?'<div class="row"><span>Tautan berlaku sampai</span><b>'+fmtWaktu(r.kedaluwarsa)+'</b></div>':"")
+        +'<p style="margin-top:14px"><a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps?q='+r.lat+","+r.lng+'">Buka posisi di Google Maps</a></p>';
+      msg.textContent="Halaman ini memuat ulang posisi setiap 30 detik selama tautan masih aktif.";
+      if(timer) clearInterval(timer);
+      timer=setInterval(()=>{ if(tokenAktif) muatSenyap(tokenAktif); },30000);
+    }catch(e){
+      pos.style.display="none";
+      msg.className="msg err";
+      msg.textContent="Penampil posisi belum bisa terhubung saat ini. Coba lagi beberapa saat lagi.";
+    }
+  }
+  async function muatSenyap(token){
+    try{
+      const rows=await sbRpc("get_live_share",{p_token:token});
+      const r=Array.isArray(rows)?rows[0]:rows;
+      if(r && r.lat!=null){ tokenAktif=token; muat(token); }
+    }catch(e){}
+  }
+
+  document.getElementById("btnLihat").addEventListener("click",()=>{
+    const t=inp.value.trim();
+    if(!t){ msg.className="msg err"; msg.textContent="Isi dulu token Live Share dari pendaki."; return; }
+    history.replaceState(null,"","?t="+encodeURIComponent(t));
+    muat(t);
+  });
+  inp.addEventListener("keydown",e=>{ if(e.key==="Enter") document.getElementById("btnLihat").click(); });
+
+  const t0=new URLSearchParams(location.search).get("t");
+  if(t0){ inp.value=t0; muat(t0); }
+</script>
+</body>
+</html>

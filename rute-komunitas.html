@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rute Komunitas — JEJAKRUTE</title>
+<meta name="description" content="Rute Komunitas JEJAKRUTE: rekaman pendakian yang dibagikan pendaki, dapat diunduh sebagai GPX dan dipakai pendaki lain.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%2317191c'/><path d='M28 68 L46 34 L58 54 L64 44 L76 68 Z' fill='%2317ce8f'/></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site"><div class="wrap nav">
+  <a class="logo" href="index.html"><span class="mark">▲</span>JEJAKRUTE<span class="dot"></span></a>
+  <nav class="menu">
+    <a href="index.html">Beranda</a><a href="katalog.html">Katalog</a><a href="rute-komunitas.html">Rute Komunitas</a><a href="live.html">Live Share</a><a href="donasi.html">Donasi</a>
+  </nav>
+  <a class="btn" href="https://github.com/FinOwi/jejakrute/releases/download/v0.18.1/JEJAKRUTE-Pratinjau-v0.18.1-arm64.apk">Unduh Aplikasi</a>
+</div></header>
+
+<section style="padding-top:40px"><div class="wrap">
+  <h2>Rute Komunitas</h2>
+  <p class="lead">Jejak rekaman yang dibagikan pendaki JEJAKRUTE dari aplikasi — dapat diunduh sebagai berkas GPX dan diikuti pendaki lain. Dua label yang tidak boleh tertukar: <b style="color:var(--amber)">Jejak Komunitas — Belum Terverifikasi</b> (baru dibagikan, belum ditinjau moderator) dan <b style="color:var(--mint)">Rute Komunitas Terverifikasi</b> (sudah lolos tinjauan). Hanya rute terverifikasi yang menghitung untuk Badge Gunung kontributornya.</p>
+  <p class="count" id="count"></p>
+  <div class="grid c2" id="list"><p style="color:var(--mut)">Memuat rute komunitas…</p></div>
+  <div class="empty" id="kosong" style="display:none">
+    <b style="color:var(--txt);font-size:16px">Belum ada rute yang dibagikan</b><br>
+    Fitur Bagikan Jejak &amp; Auto Share GPX sudah berjalan di aplikasi — begitu pendaki pertama membagikan rekamannya, rutenya tampil di sini. Rekam pendakianmu, lalu bagikan dari layar ringkasan aplikasi.
+  </div>
+  <div class="note" style="margin-top:26px"><b>Privasi kontributor terjaga:</b> yang beredar di sini adalah salinan publik dari rekaman — titik awal &amp; akhir dapat disamarkan oleh pengunggah, dan berkas rekaman asli tetap privat di akun masing-masing.</div>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="cols">
+    <div>
+      <a class="logo" href="index.html" style="margin-bottom:10px"><span class="mark">▲</span>JEJAKRUTE<span class="dot"></span></a>
+      <p>Aplikasi GPS pendaki &amp; wisata alam Indonesia. Rekam pendakianmu, pulang dengan selamat. Gratis dengan donasi — dikembangkan oleh FinOwi Id, Medan.</p>
+    </div>
+    <div><h4>Jelajah</h4><a href="katalog.html">Katalog Nasional</a><a href="rute-komunitas.html">Rute Komunitas</a><a href="live.html">Live Share</a></div>
+    <div><h4>Aplikasi</h4><a href="https://github.com/FinOwi/jejakrute/releases/latest">Unduh versi terbaru</a><a href="donasi.html">Donasi</a></div>
+  </div>
+  <div class="copy"><span>© 2026 FinOwi Id — JEJAKRUTE</span><span>Rute Komunitas ≠ Jalur Terkurasi — labelnya selalu tampil</span></div>
+</div></footer>
+
+<script src="assets/app.js"></script>
+<script>
+  ambilRuteKomunitas(null).then(routes=>{
+    document.getElementById("count").textContent=routes.length?routes.length+" rute dibagikan komunitas":"";
+    document.getElementById("list").innerHTML=routes.map(kartuRute).join("");
+    document.getElementById("kosong").style.display=routes.length?"none":"block";
+  }).catch(()=>{
+    document.getElementById("list").innerHTML="";
+    document.getElementById("kosong").style.display="block";
+    document.getElementById("kosong").innerHTML="Daftar rute belum bisa dimuat saat ini. Coba lagi nanti.";
+  });
+</script>
+</body>
+</html>

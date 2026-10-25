@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Katalog Nasional — JEJAKRUTE</title>
+<meta name="description" content="Katalog 81 gunung dan wisata alam Indonesia di JEJAKRUTE: nama, ketinggian, wilayah, dan daya tarik — dengan label tingkat data yang jujur.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%2317191c'/><path d='M28 68 L46 34 L58 54 L64 44 L76 68 Z' fill='%2317ce8f'/></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site"><div class="wrap nav">
+  <a class="logo" href="index.html"><span class="mark">▲</span>JEJAKRUTE<span class="dot"></span></a>
+  <nav class="menu">
+    <a href="index.html">Beranda</a><a href="katalog.html">Katalog</a><a href="rute-komunitas.html">Rute Komunitas</a><a href="live.html">Live Share</a><a href="donasi.html">Donasi</a>
+  </nav>
+  <a class="btn" href="https://github.com/FinOwi/jejakrute/releases/download/v0.18.1/JEJAKRUTE-Pratinjau-v0.18.1-arm64.apk">Unduh Aplikasi</a>
+</div></header>
+
+<section style="padding-top:40px"><div class="wrap">
+  <h2>Katalog Nasional</h2>
+  <p class="lead">81 gunung &amp; wisata alam dari seluruh Indonesia — data yang sama persis dengan yang ada di aplikasi. Label di tiap lokasi jujur soal tingkat datanya: <b style="color:var(--mint)">Jalur Terkurasi</b> untuk 5 pilot dengan paket jalur mendalam, <b>Data Dasar</b> untuk lokasi dengan data dasar terverifikasi (paket jalurnya menyusul bergelombang).</p>
+  <div class="tools">
+    <input type="search" id="q" placeholder="Cari nama lokasi, kabupaten, atau provinsi…">
+    <select id="fJenis"><option value="">Semua jenis</option></select>
+  </div>
+  <div class="chips" id="chipsWilayah"></div>
+  <p class="count" id="count"></p>
+  <div class="loc-grid" id="grid"></div>
+  <div class="empty" id="kosong" style="display:none">Tidak ada lokasi yang cocok dengan pencarianmu. Coba kata kunci atau wilayah lain.</div>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="cols">
+    <div>
+      <a class="logo" href="index.html" style="margin-bottom:10px"><span class="mark">▲</span>JEJAKRUTE<span class="dot"></span></a>
+      <p>Aplikasi GPS pendaki &amp; wisata alam Indonesia. Rekam pendakianmu, pulang dengan selamat. Gratis dengan donasi — dikembangkan oleh FinOwi Id, Medan.</p>
+    </div>
+    <div><h4>Jelajah</h4><a href="katalog.html">Katalog Nasional</a><a href="rute-komunitas.html">Rute Komunitas</a><a href="live.html">Live Share</a></div>
+    <div><h4>Aplikasi</h4><a href="https://github.com/FinOwi/jejakrute/releases/latest">Unduh versi terbaru</a><a href="donasi.html">Donasi</a></div>
+  </div>
+  <div class="copy"><span>© 2026 FinOwi Id — JEJAKRUTE</span><span>Sumber data: Kurasi JEJAKRUTE, Katalog Nasional v1 (Oktober 2026)</span></div>
+</div></footer>
+
+<script src="assets/katalog-data.js"></script>
+<script src="assets/app.js"></script>
+<script>
+  const DATA=window.KATALOG||[];
+  const wilayah=["Semua",...new Set(DATA.map(l=>l.wilayah))];
+  const jenis=[...new Set(DATA.map(l=>l.jenis))];
+  let wilAktif="Semua";
+  const chips=document.getElementById("chipsWilayah");
+  chips.innerHTML=wilayah.map(w=>'<button class="chip'+(w==="Semua"?" on":"")+'" data-w="'+esc(w)+'">'+esc(w)+'</button>').join("");
+  chips.addEventListener("click",e=>{
+    const b=e.target.closest(".chip"); if(!b) return;
+    wilAktif=b.dataset.w;
+    chips.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on",c===b));
+    render();
+  });
+  const sel=document.getElementById("fJenis");
+  jenis.forEach(j=>{const o=document.createElement("option");o.value=j;o.textContent=j[0].toUpperCase()+j.slice(1);sel.appendChild(o)});
+  document.getElementById("q").addEventListener("input",render);
+  sel.addEventListener("change",render);
+
+  function labelTingkat(l){
+    return l.tingkat_data==="pilot-kurasi-mendalam"
+      ? '<span class="pill kurasi">Jalur Terkurasi</span>'
+      : '<span class="pill dasar">Data Dasar</span>';
+  }
+  function render(){
+    const q=document.getElementById("q").value.trim().toLowerCase();
+    const j=sel.value;
+    const hasil=DATA.filter(l=>
+      (wilAktif==="Semua"||l.wilayah===wilAktif)&&
+      (!j||l.jenis===j)&&
+      (!q||(l.nama+" "+l.kabupaten_kota+" "+l.provinsi).toLowerCase().includes(q))
+    );
+    document.getElementById("count").textContent="Menampilkan "+hasil.length+" dari "+DATA.length+" lokasi";
+    document.getElementById("kosong").style.display=hasil.length?"none":"block";
+    document.getElementById("grid").innerHTML=hasil.map(l=>
+      '<a class="loc" href="lokasi.html?id='+encodeURIComponent(l.id)+'"><h3>'+esc(l.nama)+'</h3>'
+      +'<p class="meta">'+esc(l.jenis)+' • '+esc(l.kabupaten_kota)+', '+esc(l.provinsi)+'</p>'
+      +'<p class="atr">'+esc(l.daya_tarik)+'</p>'
+      +'<div class="foot"><span class="h">'+(l.ketinggian_mdpl?Number(l.ketinggian_mdpl).toLocaleString("id-ID")+" mdpl":"—")+'</span>'+labelTingkat(l)+'</div></a>'
+    ).join("");
+  }
+  render();
+</script>
+</body>
+</html>
