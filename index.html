@@ -19,7 +19,12 @@
   peta rute komunitas dapat dilihat publik. Halaman pendamping:
   katalog.html - rute-komunitas.html - live.html - donasi.html.
 -->
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAADj0lEQVR4nK1XbUhTYRS+v6uf3utHlP0yUDcNTUqnYiVL/LjX6bZEs6S01JgfGWSpLTXQLIkQ9UeBUZRBkH2QhNkPv3KR4udEp05tTp1pav3wIzzxvuqw7nXeu+3AgfHunOd53sPQWwzdzm5z4Mmc0Q02SZiqHkRQ4GdHGG1etLUVXGo416Cy0RRDkEimpqyIym305RRRDsEcpCTK0LBQnPCQPXmKZx/VATesfsF5JLLYoaUmI/dmp17xbjAnd4+uFsbw64sz8Tr4mhHCE6TgCTFz2K+J0NN4nLgmvMhlLlAfOVNSKxWg7f8ABxRuELJ4LBZQEJVPohlzvhEttaSnzYTUQ2sdlwuwqgi5PMwIoyFV6LKbkE6m9fIevDS/CNd4PT1xlzzJYHpflb6ocWwpOhfvIRcCpbCqVDo1A6pIewXBlnTHiekiUgRHXCggByjhBSd8nlY7i+O32PSnOj6ZOZPLv+FYijnSxhrgsSwMe9FQchUh0P4fkK3De7xRNCCWIyQqCusRY6tRoYHOvH3qlth7rGF49jD0D3cBH1tfX4c+XRdIEtzsI8BL5gwd2nYQah39X3CuzQLKnxTC6tqqYAFrf9bgfo3adgEDo72cBKMGHTS0vYOGtvegN+g4Y7QjPbYJkGUEw9LvRRYw6oftNUaf4e+WXGLvxYgKj3AegHqymwR6MrqMiTfimXFpqjlsLq2worPe6iyXkBVbRkL0DQ/jW8F100xzU2z4iuel1ovoKj6GgsQ7TLtpIVm1oYx9msBRWZ1gugrwTgOv5vqDGDz7mb40KSPDmbdWFpHsJTj9l2C7QjPcBl48YR+Kypxz5uHOWMQc1q8zV6O26ncA5ZQ+zrNdgFe0E2h6WwQL0HQ34VybBYg2O3xQ38ebHMVy3RSrBYgYCk5e8ALd+MCu5CMTgyBN9uGFufUg4T2ASFN8QW6Y3pEcNWZE2nG+5OhJ9gMJaOWdgK+mBCam9Cxyw/Q4yLNC+JOjVzFNNRNoXBKShDwuRwqTMxmcqPJAIm5kYIwNk6AyiTQcIDHJYHJFwtiwDAzAVOzBs7/Bh67/+4T4bxnYzSjHQLRuCQUJL04HrvgnTPksgdN+v8zH6JZDY1LwsEE7pyhDB4yMoBzQkblQOMSmlhQh9qNGGEhzCgqy3zsm/YWCeNHWUY0Wv0AAAAASUVORK5CYII=">
+<link rel="icon" href="assets/logo/favicon.ico" sizes="48x48">
+<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/logo/apple-touch-icon.png">
+<link rel="manifest" href="assets/logo/site.webmanifest">
+<meta name="theme-color" content="#17191C">
+<meta property="og:image" content="https://finowi.github.io/jejakrute-web/assets/logo/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
@@ -59,6 +64,7 @@ section.blk{margin-top:58px}
 .main-nav a.on{color:var(--mint)}
 .brand-c{display:flex;flex-direction:column;align-items:center;text-decoration:none;line-height:1;padding:2px 6px}
 .brand-c .bs{font-family:'Caveat',cursive;font-weight:700;font-size:37px;color:#fff;line-height:.95}
+.brand-c .bs-img{height:38px;width:auto}
 .brand-c .bsub{font-size:8.6px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--mut);margin-top:3px}
 .top-right{display:flex;justify-content:flex-end}
 .btn-masuk{background:var(--mint);color:var(--dark);border:0;border-radius:999px;padding:10px 22px;font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:background .18s ease,transform .18s ease}
@@ -156,6 +162,7 @@ a.map-row{text-decoration:none}
 /* ================= FOOTER ================= */
 .page-credits{max-width:1184px;margin:54px auto 0;padding:20px 22px 34px;border-top:1px solid var(--line);color:var(--mut);font-size:11.9px;line-height:1.7}
 .page-credits b{color:#D8DBD8}
+.page-credits .foot-logo{height:30px;width:auto;margin-bottom:12px}
 .page-credits .foot-line{font-family:'Oswald',sans-serif;font-weight:600;font-size:12.5px;letter-spacing:.14em;color:var(--txt);text-transform:uppercase;margin-bottom:9px}
 
 /* ================= MODAL MASUK (mekanisme v9) ================= */
@@ -192,6 +199,7 @@ a.map-row{text-decoration:none}
   .main-nav{display:none}
   .brand-c{align-items:flex-start}
   .brand-c .bs{font-size:32px}
+  .brand-c .bs-img{height:31px}
   .brand-c .bsub{font-size:7.6px;letter-spacing:.24em}
   .btn-masuk{padding:9px 18px;font-size:13px}
     .cover{padding:0 14px;margin-top:12px}
@@ -232,9 +240,6 @@ a.map-row{text-decoration:none}
 
 <svg class="svg-defs" aria-hidden="true" focusable="false">
   <defs>
-    <symbol id="logo-symbol" viewBox="0 0 256 256">
-      <g transform="translate(-2.63 -12.04) scale(1.0450)"><circle cx="176.0" cy="54.0" r="16" fill="#8ADBE0"/><circle cx="138.0" cy="36.0" r="12.5" fill="#8ADBE0"/><circle cx="106.0" cy="46.0" r="11" fill="#8ADBE0"/><circle cx="80.0" cy="68.0" r="9.5" fill="#8ADBE0"/><path d="M122 242 L73.35 180.44 A62 62 0 1 1 170.65 180.44 Z M144 142 A22 22 0 1 0 100 142 A22 22 0 1 0 144 142 Z" fill="#fff" fill-rule="evenodd" stroke="#fff" stroke-width="4" stroke-linejoin="round"/></g>
-    </symbol>
     <symbol id="icon-info" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M12 11v5M12 7.8v.2"/></g></symbol>
     <symbol id="icon-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8 10.5V8a4 4 0 1 1 8 0v2.5"/><circle cx="12" cy="15.2" r="1.6"/></g></symbol>
     <symbol id="icon-chev" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m6 9.5 6 6 6-6"/></symbol>
@@ -267,7 +272,7 @@ a.map-row{text-decoration:none}
       <button type="button" data-login data-ctx="Feed Komunitas hanya untuk anggota — masuk untuk melihatnya. Di dalamnya ada postingan pendaki, Replay rute, dan laporan kondisi terakhir dari jalur.">Komunitas</button>
     </nav>
     <a class="brand-c" href="index.html" aria-label="JEJAKRUTE — Beranda">
-      <span class="bs">JejakRute</span>
+      <img class="bs-img" src="assets/logo/logo-lockup-reversed.png" alt="JEJAKRUTE">
       <span class="bsub">Komunitas Penjelajah Alam</span>
     </a>
     <div class="top-right">
@@ -404,60 +409,17 @@ a.map-row{text-decoration:none}
 
 <!-- ===== Footer ===== -->
 <footer class="page-credits" id="kredit">
+  <img class="foot-logo" src="assets/logo/logo-lockup-reversed.png" alt="JEJAKRUTE">
   <p class="foot-line">JEJAKRUTE — dibangun oleh komunitas, untuk komunitas</p>
   <p>Beranda JEJAKRUTE — sampul, Hidup di Jalur, daftar peta, dan folder fitur. Feed, jelajah lengkap, profil, dan unduh GPX khusus anggota. Jelajahi juga: <a href="katalog.html">Katalog Nasional</a> · <a href="rute-komunitas.html">Rute Komunitas</a> · <a href="live.html">Live Share</a> · <a href="donasi.html">Donasi</a>.</p>
   <p style="margin-top:7px"><b>Kredit foto:</b> Kompleks Bromo–Batok–Semeru (sampul) © Ann, Pexels License, via Pexels · Elemen manusia (pelari, pendaki, traveler) — foto suasana via Unsplash, Unsplash License. Ilustrasi tidak dipakai untuk gunung: daftar peta sengaja berupa teks, seperti katalog perpustakaan.</p>
   <p style="margin-top:7px">© 2026 JEJAKRUTE · FinOwi Id, Medan, Sumatera Utara.</p>
 </footer>
 
-<!-- ===== Modal Masuk ===== -->
-<div class="modal" id="loginModal" hidden role="dialog" aria-modal="true" aria-labelledby="loginTitle">
-  <div class="modal-card">
-    <button class="modal-x" id="loginClose" type="button" aria-label="Tutup dialog masuk">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg>
-    </button>
-    <svg class="cta-symbol" aria-hidden="true"><use href="#logo-symbol"/></svg>
-    <p class="modal-kicker">Akun JEJAKRUTE</p>
-    <h3 id="loginTitle">Masuk ke JEJAKRUTE</h3>
-    <p class="modal-sub" id="loginContext">Masuk memakai <strong>akun Google yang sama</strong> dengan yang kamu pakai di aplikasi JEJAKRUTE — tidak perlu daftar ulang.</p>
-    <a class="btn-google" href="https://github.com/FinOwi/jejakrute/releases/download/v0.27.3/JEJAKRUTE-Pratinjau-v0.27.3-arm64.apk" role="button"><svg aria-hidden="true"><use href="#icon-download"/></svg> Buka lewat Aplikasi JEJAKRUTE</a>
-    <p class="modal-note"><strong>Masuk &amp; feed web sedang disiapkan.</strong> Untuk sekarang komunitas JEJAKRUTE hidup di aplikasi — masuk di sana memakai akun Google yang sama, <strong>gratis</strong>. Satu akun untuk aplikasi &amp; website.</p>
-  </div>
-</div>
-
 <script>
 (function(){
   "use strict";
-  /* ===== Modal Masuk: semua pemicu [data-login] membuka modal yang sama;
-         teks konteks menyesuaikan tombol yang diklik (feed, unduh-gpx, dsb.). ===== */
-  var modal = document.getElementById('loginModal');
-  var closeBtn = document.getElementById('loginClose');
-  var ctxEl = document.getElementById('loginContext');
-  var defaultCtx = ctxEl ? ctxEl.innerHTML : '';
-  var lastFocus = null;
-  function openModal(ctx){
-    if(!modal) return;
-    lastFocus = document.activeElement;
-    if(ctxEl) ctxEl.innerHTML = ctx ? ctx + ' Masuk memakai <strong>akun Google yang sama</strong> dengan aplikasi JEJAKRUTE.' : defaultCtx;
-    modal.hidden = false;
-    document.body.style.overflow = 'hidden';
-    if(closeBtn) closeBtn.focus();
-  }
-  function closeModal(){
-    if(!modal) return;
-    modal.hidden = true;
-    document.body.style.overflow = '';
-    if(lastFocus && lastFocus.focus) lastFocus.focus();
-  }
-  Array.prototype.forEach.call(document.querySelectorAll('[data-login]'), function(btn){
-    btn.addEventListener('click', function(){ openModal(btn.getAttribute('data-ctx') || ''); });
-  });
-  if(closeBtn) closeBtn.addEventListener('click', closeModal);
-  if(modal) modal.addEventListener('click', function(e){ if(e.target === modal) closeModal(); });
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && modal && !modal.hidden) closeModal(); });
-
-  /* ===== Folder Fitur: tab & flap sama-sama tombol buka-lipat.
-         Deskripsi per fitur muncul lewat kelas .open (transisi CSS). ===== */
+  /* ===== Folder Fitur: tab & flap sama-sama tombol buka-lipat. ===== */
   var folder = document.getElementById('folderFitur');
   var toggles = document.querySelectorAll('[data-folder-toggle]');
   var flapText = document.querySelector('[data-flap-text]');
@@ -472,5 +434,7 @@ a.map-row{text-decoration:none}
   });
 })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/auth.js"></script>
 </body>
 </html>
