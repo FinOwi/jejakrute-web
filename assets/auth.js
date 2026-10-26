@@ -10,6 +10,14 @@
   var SB_URL = "https://qykzrcygsyeznzmsdohp.supabase.co";
   var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5a3pyY3lnc3llem56bXNkb2hwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NDM3MjAsImV4cCI6MjEwODQxOTcyMH0.T4y-jdD9OJK8LSNE26mydKXWDzCKoIeCy_BBvm57LlA";
   var client = null, session = null, profile = null, lastCtx = "", lastFocus = null;
+  var readyResolve = null;
+  var jrReady = new Promise(function (resolve) { readyResolve = resolve; });
+  function selesaikanReady() {
+    if (!readyResolve) return;
+    var done = readyResolve;
+    readyResolve = null;
+    done({ session: session, profile: profile });
+  }
 
   function assetBase() {
     /* auth.js selalu di assets/ dan semua halaman ada di root repo. */
@@ -246,7 +254,17 @@
       if (b.__jrBound) return;
       b.__jrBound = true;
       if (b.textContent.trim().toLowerCase() === "masuk") b.setAttribute("data-jr-loginbtn", "");
-      b.addEventListener("click", function () { openModal(b.getAttribute("data-ctx") || ""); });
+      b.addEventListener("click", function () {
+        var go = b.getAttribute("data-go");
+        if (go) {
+          jrReady.then(function () {
+            if (session) location.href = go;
+            else openModal(b.getAttribute("data-ctx") || "");
+          });
+          return;
+        }
+        openModal(b.getAttribute("data-ctx") || "");
+      });
     });
   }
 
@@ -280,7 +298,7 @@
   /* ---------- Mulai ---------- */
   function mulai() {
     ikatTombol();
-    if (!ensureClient()) return;
+    if (!ensureClient()) { selesaikanReady(); return; }
     client.auth.getSession().then(function (res) {
       session = res.data.session;
       return muatProfil();
@@ -295,7 +313,8 @@
         var meta = session.user.user_metadata || {};
         if (namaEl && !namaEl.value) namaEl.value = (profile && profile.nama) || meta.full_name || "";
       }
-    }).catch(function () { /* tetap tampil sebagai belum masuk */ });
+      selesaikanReady();
+    }).catch(function () { selesaikanReady(); /* tetap tampil sebagai belum masuk */ });
     client.auth.onAuthStateChange(function (_ev, s) {
       session = s;
       muatProfil().then(function () { segarkanTombol(); if (modal && !modal.hasAttribute("hidden")) renderState(); });
@@ -306,4 +325,13 @@
 
   window.jrOpenLogin = openModal;
   window.jrUnduhGpx = unduhGpx;
+  window.jrReady = jrReady;
+  window.jr = {
+    client: function () { return ensureClient() ? client : null; },
+    session: function () { return session; },
+    profile: function () { return profile; },
+    openLogin: openModal,
+    unduhGpx: unduhGpx,
+    baseUrl: SB_URL
+  };
 })();

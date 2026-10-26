@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detail Postingan — JEJAKRUTE</title>
+<meta name="description" content="Detail postingan komunitas JEJAKRUTE dari server yang sama dengan aplikasi.">
+<link rel="icon" href="assets/logo/favicon.ico" sizes="48x48">
+<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/logo/apple-touch-icon.png">
+<link rel="manifest" href="assets/logo/site.webmanifest">
+<meta name="theme-color" content="#17191C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/member.css">
+</head>
+<body data-member-page="feed">
+<div data-member-shell></div>
+
+<main class="member-main" data-member-main hidden>
+  <p><a href="feed.html">← Kembali ke Beranda</a></p>
+  <section id="postDetail" style="margin-top:16px"><p class="loading">Memuat postingan dari server…</p></section>
+
+  <section class="card" id="commentCard" hidden>
+    <div class="section-head">
+      <div><p class="kicker">diskusi jalur</p><h2>Komentar</h2></div>
+      <span class="pill" id="commentCount">0 komentar</span>
+    </div>
+    <div class="comment-list" id="commentList"><p class="loading">Memuat komentar…</p></div>
+    <form class="inline-form" id="commentForm">
+      <textarea id="commentText" maxlength="1000" placeholder="Tulis komentar…" required></textarea>
+      <button class="btn" type="submit">Kirim</button>
+    </form>
+    <p class="small error" id="commentMsg" style="margin-top:9px"></p>
+  </section>
+</main>
+
+<section class="member-lock" data-member-lock hidden></section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/member.js"></script>
+<script>
+(function () {
+  "use strict";
+  var K = window.MemberKit;
+  var postId = new URLSearchParams(location.search).get("id");
+  var detail = document.getElementById("postDetail");
+  var commentCard = document.getElementById("commentCard");
+  var commentList = document.getElementById("commentList");
+
+  function mediaHTML(post) {
+    var items = K.mediaItems(post);
+    if (post.jenis === "foto" && items.length) {
+      return '<div class="post-gallery">' + items.map(function (path, i) {
+        return '<figure><img src="' + K.esc(K.mediaUrl(path)) + '" alt="Foto postingan ' + (i + 1) + '"></figure>';
+      }).join("") + '</div>' + (items.length > 1 ? '<div class="gallery-count">' + items.length + ' foto — geser untuk melihat</div>' : '');
+    }
+    if (post.jenis === "gpx") {
+      return '<div class="replay-card"><span class="pill verif">Replay GPX</span>' +
+        '<div class="replay-stats"><div><strong data-gpx-distance>…</strong><span>Jarak</span></div><div><strong data-gpx-gain>…</strong><span>Kenaikan</span></div><div><strong data-gpx-points>…</strong><span>Titik</span></div></div>' +
+        '<canvas class="spark" data-gpx-spark aria-label="Grafik elevasi Replay"></canvas>' +
+        '<p class="small muted" data-gpx-status style="margin-top:9px">Menghitung statistik dari GPX server…</p>' +
+        '<div class="form-actions" style="margin-top:12px"><a class="btn sm" href="replay.html?post=' + encodeURIComponent(post.id) + '">Putar Replay</a></div></div>';
+    }
+    if (post.jenis === "video" && items.length) return '<video class="post-video" controls preload="metadata" src="' + K.esc(K.mediaUrl(items[0])) + '"></video>';
+    return "";
+  }
+
+  async function mulai() {
+    var ctx = await K.ready();
+    if (!ctx) return;
+    var c = ctx.client, me = ctx.session.user.id;
+    if (!postId) {
+      detail.innerHTML = '<div class="empty error">Tautan postingan tidak memiliki ID.</div>';
+      return;
+    }
+
+    async function fetchPost() {
+      var res = await c.from("posts").select("*").eq("id", postId).single();
+      if (res.error) throw res.error;
+      return res.data;
+    }
+    async function fetchSocial(post) {
+      var results = await Promise.all([
+        K.profilesByIds([post.user_id]),
+        c.from("post_likes").select("post_id,user_id").eq("post_id", post.id),
+        c.from("post_saves").select("post_id").eq("post_id", post.id).eq("user_id", me),
+        c.from("comments").select("id").eq("post_id", post.id)
+      ]);
+      if (results[1].error) throw results[1].error;
+      if (results[2].error) throw results[2].error;
+      if (results[3].error) throw results[3].error;
+      return {
+        author: results[0].get(post.user_id) || { id: post.user_id, nama: "Pendaki JEJAKRUTE" },
+        likeCount: (results[1].data || []).length,
+        liked: (results[1].data || []).some(function (r) { return r.user_id === me; }),
+        saved: (results[2].data || []).length > 0,
+        commentCount: (results[3].data || []).length
+      };
+    }
+    async function hydrateGPX(post) {
+      if (post.jenis !== "gpx") return;
+      var items = K.mediaItems(post), status = detail.querySelector("[data-gpx-status]");
+      if (!items.length) { if (status) status.textContent = "Postingan ini tidak memiliki berkas GPX di server."; return; }
+      try {
+        var a = await K.loadGPX(K.mediaUrl(items[0]));
+        detail.querySelector("[data-gpx-distance]").textContent = K.fmtKm(a.distanceKm);
+        detail.querySelector("[data-gpx-gain]").textContent = K.fmtM(a.gainM);
+        detail.querySelector("[data-gpx-points]").textContent = K.fmtNum(a.points.length);
+        K.drawSpark(detail.querySelector("[data-gpx-spark]"), a, 1);
+        if (status) status.textContent = "Statistik dihitung dari berkas GPX publik di server.";
+      } catch (err) { if (status) status.textContent = "GPX belum dapat dihitung: " + (err.message || err); }
+    }
+    async function refreshPost() {
+      var post = await fetchPost();
+      var s = await fetchSocial(post);
+      var a = s.author, link = K.profileLink(a), own = post.user_id === me;
+      detail.innerHTML = '<article class="post-card">' +
+        '<div class="post-head"><a href="' + K.esc(link) + '">' + K.avatarHTML(a, "", null) + '</a><div class="post-author"><a href="' + K.esc(link) + '">' + K.esc(K.displayName(a)) + '</a><div class="post-meta">' + K.esc(K.usernameLabel(a)) + (K.usernameLabel(a) ? ' · ' : '') + K.esc(K.relTime(post.created_at)) + '</div>' + (post.lokasi_nama ? '<div class="post-location">' + K.esc(post.lokasi_nama) + '</div>' : '') + '</div>' +
+        (post.status_moderasi !== "tampil" ? '<span class="pill belum">' + K.esc(post.status_moderasi) + '</span>' : '') + '</div>' +
+        mediaHTML(post) +
+        (post.caption ? '<div class="post-body"><p class="post-caption">' + K.esc(post.caption) + '</p></div>' : '') +
+        '<div class="post-actions">' +
+        '<button class="action-btn' + (s.liked ? ' active' : '') + '" type="button" data-act="like" data-state="' + (s.liked ? '1' : '0') + '">' + K.icons.heart + '<span>' + K.fmtNum(s.likeCount) + '</span></button>' +
+        '<span class="action-btn">' + K.icons.comment + '<span>' + K.fmtNum(s.commentCount) + '</span></span>' +
+        '<button class="action-btn' + (s.saved ? ' active' : '') + '" type="button" data-act="save" data-state="' + (s.saved ? '1' : '0') + '">' + K.icons.bookmark + '<span>Simpan</span></button>' +
+        '<span class="action-spacer"></span>' +
+        '<button class="action-btn" type="button" data-act="share">' + K.icons.share + '<span>Bagikan</span></button>' +
+        (own ? '<button class="action-btn" type="button" data-act="delete">' + K.icons.trash + '<span>Hapus</span></button>' : '<button class="action-btn" type="button" data-act="report">' + K.icons.flag + '<span>Laporkan</span></button>') +
+        '</div></article>';
+      commentCard.hidden = false;
+      await hydrateGPX(post);
+      return post;
+    }
+    async function refreshComments() {
+      var res = await c.from("comments").select("id,post_id,user_id,parent_id,isi,created_at").eq("post_id", postId).order("created_at", { ascending: true }).limit(300);
+      if (res.error) throw res.error;
+      var rows = res.data || [];
+      document.getElementById("commentCount").textContent = rows.length + " komentar";
+      if (!rows.length) { commentList.innerHTML = '<div class="empty">Belum ada komentar. Mulai percakapan jalur ini.</div>'; return; }
+      var authors = await K.profilesByIds(rows.map(function (r) { return r.user_id; }));
+      commentList.innerHTML = rows.map(function (cm) {
+        var a = authors.get(cm.user_id) || { id: cm.user_id, nama: "Pendaki JEJAKRUTE" };
+        return '<div class="comment"><a href="' + K.esc(K.profileLink(a)) + '">' + K.avatarHTML(a, "small", null) + '</a><div class="comment-main"><strong><a style="color:var(--txt);text-decoration:none" href="' + K.esc(K.profileLink(a)) + '">' + K.esc(K.displayName(a)) + '</a></strong> <span class="comment-meta">' + K.esc(K.usernameLabel(a)) + ' · ' + K.esc(K.relTime(cm.created_at)) + (cm.parent_id ? ' · membalas komentar' : '') + '</span><p>' + K.esc(cm.isi) + '</p>' +
+          (cm.user_id === me ? '<button class="text-btn" type="button" data-delete-comment="' + K.esc(cm.id) + '">Hapus komentar</button>' : '') + '</div></div>';
+      }).join("");
+    }
+
+    detail.addEventListener("click", async function (e) {
+      var btn = e.target.closest("[data-act]");
+      if (!btn) return;
+      var act = btn.getAttribute("data-act");
+      if (act === "share") {
+        try { await navigator.clipboard.writeText(location.href); K.toast("Tautan postingan disalin."); }
+        catch (_) { window.prompt("Salin tautan postingan:", location.href); }
+        return;
+      }
+      btn.disabled = true;
+      try {
+        if (act === "like") {
+          var r = btn.getAttribute("data-state") === "1"
+            ? await c.from("post_likes").delete().eq("post_id", postId).eq("user_id", me)
+            : await c.from("post_likes").insert({ post_id: postId, user_id: me });
+          if (r.error) throw r.error;
+          await refreshPost();
+        } else if (act === "save") {
+          var r2 = btn.getAttribute("data-state") === "1"
+            ? await c.from("post_saves").delete().eq("post_id", postId).eq("user_id", me)
+            : await c.from("post_saves").insert({ post_id: postId, user_id: me });
+          if (r2.error) throw r2.error;
+          await refreshPost();
+        } else if (act === "report") {
+          var alasan = window.prompt("Tulis alasan laporan untuk moderator:");
+          if (alasan && alasan.trim()) {
+            var rr = await c.from("reports").insert({ pelapor: me, post_id: postId, alasan: alasan.trim() });
+            if (rr.error) throw rr.error;
+            K.toast("Laporan terkirim ke server.");
+          }
+        } else if (act === "delete") {
+          if (window.confirm("Hapus postingan ini dari server? Tindakan ini juga berlaku di aplikasi.")) {
+            var rd = await c.from("posts").delete().eq("id", postId).eq("user_id", me);
+            if (rd.error) throw rd.error;
+            location.href = "feed.html";
+            return;
+          }
+        }
+      } catch (err) {
+        K.toast("Aksi gagal disimpan ke server: " + (err.message || err));
+      } finally { btn.disabled = false; }
+    });
+
+    commentList.addEventListener("click", async function (e) {
+      var btn = e.target.closest("[data-delete-comment]");
+      if (!btn) return;
+      if (!window.confirm("Hapus komentar ini dari server?")) return;
+      btn.disabled = true;
+      try {
+        var res = await c.from("comments").delete().eq("id", btn.getAttribute("data-delete-comment")).eq("user_id", me);
+        if (res.error) throw res.error;
+        await refreshComments();
+        await refreshPost();
+      } catch (err) {
+        K.toast("Komentar gagal dihapus: " + (err.message || err));
+        btn.disabled = false;
+      }
+    });
+    document.getElementById("commentForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var input = document.getElementById("commentText"), msg = document.getElementById("commentMsg");
+      var isi = input.value.trim();
+      if (!isi) return;
+      var btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true; msg.textContent = "";
+      try {
+        var res = await c.from("comments").insert({ post_id: postId, user_id: me, isi: isi });
+        if (res.error) throw res.error;
+        input.value = "";
+        await refreshComments();
+        await refreshPost();
+      } catch (err) {
+        msg.textContent = "Komentar gagal dikirim ke server: " + (err.message || err);
+      } finally { btn.disabled = false; }
+    });
+
+    try {
+      await refreshPost();
+      await refreshComments();
+    } catch (err) {
+      detail.innerHTML = '<div class="empty error">Postingan gagal dimuat dari server: ' + K.esc(err.message || err) + '</div>';
+    }
+  }
+  mulai();
+})();
+</script>
+</body>
+</html>

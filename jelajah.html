@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jelajah — JEJAKRUTE</title>
+<meta name="description" content="Jelajah JEJAKRUTE: cari pendaki dan tempat, Mendaki Bareng, Rute Komunitas terbaru, dan katalog pilot.">
+<link rel="icon" href="assets/logo/favicon.ico" sizes="48x48">
+<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/logo/apple-touch-icon.png">
+<link rel="manifest" href="assets/logo/site.webmanifest">
+<meta name="theme-color" content="#17191C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/member.css">
+</head>
+<body data-member-page="jelajah">
+<div data-member-shell></div>
+
+<main class="member-main" data-member-main hidden>
+  <p class="kicker">temukan jalur & orangnya</p>
+  <h1 class="page-title">Jelajah</h1>
+  <p class="page-lead">Cari pendaki dari profil server, tempat dari katalog yang sama dengan aplikasi, lalu bergabung dengan rencana Mendaki Bareng.</p>
+
+  <section class="card">
+    <form class="search-bar" id="searchForm" style="margin-top:0">
+      <input id="searchInput" type="search" placeholder="Cari nama, username, gunung, atau daerah…" autocomplete="off">
+      <button class="btn" type="submit">Cari</button>
+    </form>
+    <div class="section" id="peopleResultsWrap" hidden>
+      <div class="section-head"><h2>Orang</h2></div>
+      <div class="people-list" id="peopleResults"></div>
+    </div>
+    <div class="section" id="placeResultsWrap" hidden>
+      <div class="section-head"><h2>Tempat</h2></div>
+      <div class="place-list" id="placeResults"></div>
+    </div>
+    <p class="small muted" id="searchMsg" style="margin-top:13px">Hasil orang dibaca langsung dari tabel profil server; hasil tempat memakai berkas katalog JEJAKRUTE.</p>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <div><p class="kicker">mendaki bareng</p><h2>Grup Terbuka</h2><p>Rencana dari server. Gabung mengirim permintaan berstatus menunggu persetujuan pembuat.</p></div>
+      <button class="btn ghost" type="button" id="toggleGroupForm">Buat Grup</button>
+    </div>
+    <form class="card member-form" id="groupForm" hidden>
+      <div class="form-grid">
+        <div><label for="groupTitle">Judul grup</label><input id="groupTitle" maxlength="120" required placeholder="mis. Santai ke Sibayak"></div>
+        <div><label for="groupLocation">Nama lokasi</label><input id="groupLocation" maxlength="120" required placeholder="mis. Gunung Sibayak"></div>
+      </div>
+      <div class="form-grid">
+        <div><label for="groupDate">Tanggal (teks)</label><input id="groupDate" maxlength="80" required placeholder="mis. Sabtu, 14 November 2026"></div>
+        <div><label for="groupLevel">Level</label><select id="groupLevel"><option>Pemula</option><option>Menengah</option><option>Berpengalaman</option><option>Semua level</option></select></div>
+      </div>
+      <div class="form-grid">
+        <div><label for="groupQuota">Kuota</label><input id="groupQuota" type="number" min="1" max="500" value="10" required></div>
+        <div><label for="groupMeet">Titik kumpul</label><input id="groupMeet" maxlength="160" placeholder="mis. Pos registrasi, 05.30"></div>
+      </div>
+      <div class="form-actions"><button class="btn" type="submit">Simpan Grup</button><span class="small muted" id="groupMsg"></span></div>
+    </form>
+    <div id="openGroups"><p class="loading">Memuat grup terbuka dari server…</p></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div><p class="kicker">rencanaku</p><h2>Grup Saya</h2></div></div>
+    <div id="myGroups"><p class="loading">Memuat grup saya dari server…</p></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div><p class="kicker">dari kontributor</p><h2>Rute Komunitas Terbaru</h2><p>Lima rute terakhir dari server; unduh GPX tetap melewati gerbang akun.</p></div><a class="btn ghost sm" href="rute-komunitas.html">Semua Rute</a></div>
+    <div id="latestRoutes"><p class="loading">Memuat Rute Komunitas…</p></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div><p class="kicker">katalog nasional</p><h2>Gunung Pilot</h2></div><a class="btn ghost sm" href="katalog.html">Katalog Lengkap</a></div>
+    <div class="catalog-grid" id="pilotCatalog"></div>
+  </section>
+</main>
+
+<section class="member-lock" data-member-lock hidden></section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/katalog-data.js"></script>
+<script src="assets/member.js"></script>
+<script>
+(function () {
+  "use strict";
+  var K = window.MemberKit;
+  var openGroupsEl = document.getElementById("openGroups");
+  var myGroupsEl = document.getElementById("myGroups");
+
+  function slug(text) {
+    return String(text || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+  function groupMeta(g) {
+    return [g.lokasi_nama, g.tanggal_teks, g.level].filter(Boolean).join(" · ");
+  }
+
+  async function mulai() {
+    var ctx = await K.ready();
+    if (!ctx) return;
+    var c = ctx.client, me = ctx.session.user.id;
+
+    async function loadTrips() {
+      openGroupsEl.innerHTML = '<p class="loading">Memuat grup terbuka dari server…</p>';
+      myGroupsEl.innerHTML = '<p class="loading">Memuat grup saya dari server…</p>';
+      var groupsRes = await c.from("trip_groups").select("*").eq("status", "terbuka").order("created_at", { ascending: false }).limit(60);
+      if (groupsRes.error) throw groupsRes.error;
+      var groups = groupsRes.data || [];
+      var creators = await K.profilesByIds(groups.map(function (g) { return g.user_id; }));
+      var memberships = [];
+      if (groups.length) {
+        var memRes = await c.from("trip_members").select("group_id,user_id,status").in("group_id", groups.map(function (g) { return g.id; }));
+        if (memRes.error) throw memRes.error;
+        memberships = memRes.data || [];
+      }
+      if (!groups.length) openGroupsEl.innerHTML = '<div class="empty">Belum ada grup Mendaki Bareng berstatus terbuka di server.</div>';
+      else openGroupsEl.innerHTML = '<div class="trip-grid">' + groups.map(function (g) {
+        var mine = memberships.filter(function (m) { return m.group_id === g.id && m.user_id === me; })[0];
+        var approved = memberships.filter(function (m) { return m.group_id === g.id && m.status === "disetujui"; }).length;
+        var creator = creators.get(g.user_id) || { nama: "Pendaki JEJAKRUTE" };
+        var action;
+        if (g.user_id === me) action = '<button class="btn plain sm" type="button" disabled>Grup Saya</button>';
+        else if (mine && mine.status === "disetujui") action = '<button class="btn plain sm" type="button" disabled>Sudah Bergabung</button>';
+        else if (mine && mine.status === "menunggu") action = '<button class="btn plain sm" type="button" disabled>Menunggu Persetujuan</button>';
+        else if (mine && mine.status === "ditolak") action = '<button class="btn plain sm" type="button" disabled>Permintaan Ditolak</button>';
+        else action = '<button class="btn sm" type="button" data-join-group="' + K.esc(g.id) + '">Gabung</button>';
+        return '<article class="trip-card"><h3>' + K.esc(g.judul || "Mendaki Bareng") + '</h3><p class="meta-line">' + K.esc(groupMeta(g)) + '</p>' +
+          '<p class="meta-line">Kuota ' + K.fmtNum(g.kuota || 0) + ' · anggota disetujui ' + K.fmtNum(approved) + '</p>' +
+          (g.titik_kumpul ? '<p class="meta-line">Titik kumpul: ' + K.esc(g.titik_kumpul) + '</p>' : '') +
+          '<p class="meta-line">Dibuat oleh <a href="' + K.esc(K.profileLink(creator)) + '">' + K.esc(K.displayName(creator)) + '</a></p>' +
+          '<div class="form-actions" style="margin-top:13px">' + action + '</div></article>';
+      }).join("") + '</div>';
+
+      var myMemRes = await c.from("trip_members").select("group_id,status").eq("user_id", me);
+      if (myMemRes.error) throw myMemRes.error;
+      var myMems = myMemRes.data || [];
+      var createdRes = await c.from("trip_groups").select("*").eq("user_id", me).order("created_at", { ascending: false });
+      if (createdRes.error) throw createdRes.error;
+      var byId = new Map();
+      (createdRes.data || []).forEach(function (g) { byId.set(g.id, { group: g, role: "Pembuat" }); });
+      var memberGroupIds = myMems.map(function (m) { return m.group_id; }).filter(function (id) { return !byId.has(id); });
+      if (memberGroupIds.length) {
+        var memberGroupsRes = await c.from("trip_groups").select("*").in("id", memberGroupIds);
+        if (memberGroupsRes.error) throw memberGroupsRes.error;
+        (memberGroupsRes.data || []).forEach(function (g) {
+          var m = myMems.filter(function (x) { return x.group_id === g.id; })[0];
+          byId.set(g.id, { group: g, role: "Anggota · " + (m ? m.status : "") });
+        });
+      }
+      var mineRows = Array.from(byId.values());
+      myGroupsEl.innerHTML = mineRows.length ? '<div class="trip-grid">' + mineRows.map(function (r) {
+        var g = r.group;
+        return '<article class="trip-card"><h3>' + K.esc(g.judul || "Mendaki Bareng") + '</h3><p class="meta-line">' + K.esc(groupMeta(g)) + '</p><p class="meta-line">Status grup: ' + K.esc(g.status || "—") + ' · Peran saya: ' + K.esc(r.role) + '</p></article>';
+      }).join("") + '</div>' : '<div class="empty">Kamu belum membuat atau mengikuti grup Mendaki Bareng.</div>';
+    }
+
+    openGroupsEl.addEventListener("click", async function (e) {
+      var btn = e.target.closest("[data-join-group]");
+      if (!btn) return;
+      btn.disabled = true;
+      try {
+        var res = await c.from("trip_members").insert({ group_id: btn.getAttribute("data-join-group"), user_id: me, status: "menunggu" });
+        if (res.error) throw res.error;
+        K.toast("Permintaan bergabung terkirim ke server.");
+        await loadTrips();
+      } catch (err) {
+        K.toast("Gabung grup gagal: " + (err.message || err));
+        btn.disabled = false;
+      }
+    });
+    var groupForm = document.getElementById("groupForm");
+    document.getElementById("toggleGroupForm").addEventListener("click", function () { groupForm.hidden = !groupForm.hidden; });
+    groupForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var msg = document.getElementById("groupMsg");
+      var lokasiNama = document.getElementById("groupLocation").value.trim();
+      var catalog = (window.KATALOG || []).filter(function (x) { return String(x.nama || "").toLowerCase() === lokasiNama.toLowerCase(); })[0];
+      var btn = groupForm.querySelector('button[type="submit"]');
+      btn.disabled = true; msg.textContent = "Menyimpan grup ke server…";
+      try {
+        var res = await c.from("trip_groups").insert({
+          user_id: me,
+          lokasi_kunci: slug(lokasiNama),
+          lokasi_id: catalog ? catalog.id : null,
+          lokasi_nama: lokasiNama,
+          judul: document.getElementById("groupTitle").value.trim(),
+          tanggal_teks: document.getElementById("groupDate").value.trim(),
+          tanggal: null,
+          kuota: parseInt(document.getElementById("groupQuota").value, 10) || 1,
+          level: document.getElementById("groupLevel").value,
+          titik_kumpul: document.getElementById("groupMeet").value.trim() || null,
+          lokasi_usulan: null,
+          status: "terbuka"
+        });
+        if (res.error) throw res.error;
+        groupForm.reset();
+        document.getElementById("groupQuota").value = "10";
+        groupForm.hidden = true;
+        K.toast("Grup Mendaki Bareng dibuat di server.");
+        await loadTrips();
+      } catch (err) {
+        msg.textContent = "Gagal membuat grup: " + (err.message || err);
+      } finally { btn.disabled = false; }
+    });
+
+    var searchTimer = null;
+    async function runSearch() {
+      var q = document.getElementById("searchInput").value.trim();
+      var msg = document.getElementById("searchMsg");
+      var pw = document.getElementById("peopleResultsWrap"), lw = document.getElementById("placeResultsWrap");
+      if (q.length < 2) {
+        pw.hidden = lw.hidden = true;
+        msg.textContent = "Ketik minimal dua karakter untuk mencari.";
+        return;
+      }
+      msg.textContent = "Mencari di server dan katalog…";
+      try {
+        var like = "%" + q.replace(/[%_,]/g, " ") + "%";
+        var results = await Promise.all([
+          c.from("profiles").select("id,nama,username,bio,avatar_path").ilike("nama", like).limit(12),
+          c.from("profiles").select("id,nama,username,bio,avatar_path").ilike("username", like).limit(12)
+        ]);
+        if (results[0].error) throw results[0].error;
+        if (results[1].error) throw results[1].error;
+        var people = new Map();
+        (results[0].data || []).concat(results[1].data || []).forEach(function (p) { people.set(p.id, p); });
+        var peopleRows = Array.from(people.values());
+        pw.hidden = false;
+        document.getElementById("peopleResults").innerHTML = peopleRows.length ? peopleRows.map(function (p) {
+          return '<a class="person-row" href="' + K.esc(K.profileLink(p)) + '">' + K.avatarHTML(p, "", null) + '<span class="grow"><strong>' + K.esc(K.displayName(p)) + '</strong><br><span class="muted">' + K.esc(K.usernameLabel(p)) + (p.bio ? ' · ' + K.esc(p.bio) : '') + '</span></span></a>';
+        }).join("") : '<div class="empty">Tidak ada pendaki yang cocok di server.</div>';
+        var ql = q.toLowerCase();
+        var places = (window.KATALOG || []).filter(function (x) {
+          return [x.nama, x.kabupaten_kota, x.provinsi, x.wilayah].join(" ").toLowerCase().indexOf(ql) >= 0;
+        }).slice(0, 12);
+        lw.hidden = false;
+        document.getElementById("placeResults").innerHTML = places.length ? places.map(function (x) {
+          return '<a class="place-row" href="lokasi.html?id=' + encodeURIComponent(x.id) + '"><span class="grow"><strong>' + K.esc(x.nama) + '</strong><br><span class="muted">' + K.esc(x.kabupaten_kota || "") + (x.provinsi ? ' · ' + K.esc(x.provinsi) : '') + '</span></span><strong>' + (x.ketinggian_mdpl ? K.fmtNum(x.ketinggian_mdpl) + ' m' : '') + '</strong></a>';
+        }).join("") : '<div class="empty">Tidak ada tempat yang cocok di katalog.</div>';
+        msg.textContent = "Hasil terbaru dibaca dari server dan katalog.";
+      } catch (err) {
+        msg.textContent = "Pencarian gagal: " + (err.message || err);
+      }
+    }
+    document.getElementById("searchForm").addEventListener("submit", function (e) { e.preventDefault(); runSearch(); });
+    document.getElementById("searchInput").addEventListener("input", function () {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(runSearch, 400);
+    });
+
+    try { await loadTrips(); }
+    catch (err) {
+      openGroupsEl.innerHTML = '<div class="empty error">Grup gagal dimuat dari server: ' + K.esc(err.message || err) + '</div>';
+      myGroupsEl.innerHTML = "";
+    }
+    try {
+      var routes = await ambilRuteKomunitas();
+      document.getElementById("latestRoutes").innerHTML = routes.length ? routes.slice(0, 5).map(kartuRute).join("") : '<div class="empty">Belum ada Rute Komunitas di server.</div>';
+    } catch (err) {
+      document.getElementById("latestRoutes").innerHTML = '<div class="empty error">Rute Komunitas gagal dimuat: ' + K.esc(err.message || err) + '</div>';
+    }
+    var pilots = (window.KATALOG || []).filter(function (x) { return x.tingkat_data === "pilot-kurasi-mendalam"; });
+    document.getElementById("pilotCatalog").innerHTML = pilots.map(function (x) {
+      return '<a class="catalog-card" href="lokasi.html?id=' + encodeURIComponent(x.id) + '" style="text-decoration:none;color:var(--txt)"><h3>' + K.esc(x.nama) + '</h3><p class="meta-line">' + K.esc(x.kabupaten_kota || "") + ' · ' + K.esc(x.provinsi || "") + '</p><p class="meta-line">' + (x.ketinggian_mdpl ? K.fmtNum(x.ketinggian_mdpl) + ' mdpl' : 'Ketinggian belum tercatat') + '</p></a>';
+    }).join("") + '<a class="catalog-card" href="katalog.html" style="text-decoration:none"><h3>Katalog Nasional</h3><p class="meta-line">Lihat seluruh lokasi di katalog JEJAKRUTE.</p></a>';
+  }
+  mulai();
+})();
+</script>
+</body>
+</html>

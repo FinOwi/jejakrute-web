@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aman — JEJAKRUTE</title>
+<meta name="description" content="Pantau Live Share, Batas Waktu Turun, dan Kontak Darurat JEJAKRUTE dari data server akunmu.">
+<link rel="icon" href="assets/logo/favicon.ico" sizes="48x48">
+<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/logo/apple-touch-icon.png">
+<link rel="manifest" href="assets/logo/site.webmanifest">
+<meta name="theme-color" content="#17191C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/member.css">
+</head>
+<body data-member-page="aman">
+<div data-member-shell></div>
+
+<main class="member-main" data-member-main hidden>
+  <p class="kicker">keselamatan di jalur</p>
+  <h1 class="page-title">Aman</h1>
+  <p class="page-lead">Bagian ini memantau data keselamatan yang sudah berjalan dari aplikasi. Memulai sesi Live Share dan Batas Waktu Turun tetap dilakukan dari aplikasi karena membutuhkan GPS perangkat; web dipakai untuk memantau dan membagikan tautannya.</p>
+
+  <section class="section">
+    <div class="section-head"><div><p class="kicker">posisi langsung</p><h2>Live Share Saya</h2></div></div>
+    <div class="card" id="liveShares"><p class="loading">Memuat Live Share dari server…</p></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div><p class="kicker">sudah turun?</p><h2>Batas Waktu Turun</h2></div></div>
+    <div class="card" id="deadlines"><p class="loading">Memuat Batas Waktu Turun dari server…</p></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div><p class="kicker">orang yang dihubungi</p><h2>Kontak Darurat</h2></div></div>
+    <div class="card" id="contacts"><p class="loading">Memuat Kontak Darurat dari server…</p></div>
+    <p class="small muted" style="margin-top:10px">Kontak darurat di halaman ini baca-saja. Tambah, ubah, dan urutkan kontak dari aplikasi JEJAKRUTE.</p>
+  </section>
+</main>
+
+<section class="member-lock" data-member-lock hidden></section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/member.js"></script>
+<script>
+(function () {
+  "use strict";
+  var K = window.MemberKit;
+
+  function liveUrl(token) {
+    return new URL("live.html?t=" + encodeURIComponent(token), location.href).href;
+  }
+  function remainingText(iso) {
+    var ms = new Date(iso).getTime() - Date.now();
+    if (!isFinite(ms)) return "—";
+    if (ms <= 0) return "Waktu batas sudah lewat";
+    var mins = Math.round(ms / 60000);
+    if (mins < 60) return "Sisa " + mins + " menit";
+    var hours = Math.floor(mins / 60), rest = mins % 60;
+    if (hours < 24) return "Sisa " + hours + " jam" + (rest ? " " + rest + " menit" : "");
+    return "Sisa " + Math.floor(hours / 24) + " hari " + (hours % 24) + " jam";
+  }
+  function expired(iso) { return iso && new Date(iso).getTime() <= Date.now(); }
+
+  async function mulai() {
+    var ctx = await K.ready();
+    if (!ctx) return;
+    var c = ctx.client, me = ctx.session.user.id;
+
+    async function loadLive() {
+      var el = document.getElementById("liveShares");
+      var res = await c.from("live_shares").select("*").eq("user_id", me).order("created_at", { ascending: false }).limit(30);
+      if (res.error) throw res.error;
+      var rows = res.data || [];
+      if (!rows.length) { el.innerHTML = '<div class="empty">Belum ada sesi Live Share pada akunmu. Mulai sesi dari aplikasi saat pendakian, lalu tautannya dapat dibagikan dari sini.</div>'; return; }
+      el.innerHTML = rows.map(function (s) {
+        var on = !!s.aktif && !expired(s.kedaluwarsa);
+        var url = s.token ? liveUrl(s.token) : "";
+        return '<div class="safety-item"><h3><span class="status-dot' + (on ? ' on' : '') + '"></span>' + (on ? 'Live Share Aktif' : 'Live Share Tidak Aktif') + '</h3>' +
+          '<dl class="kv"><dt>Status server</dt><dd>' + (s.aktif ? 'Aktif' : 'Berhenti') + (s.kedaluwarsa ? ' · kedaluwarsa ' + K.esc(K.fmtDateTime(s.kedaluwarsa)) : '') + '</dd>' +
+          '<dt>Posisi terakhir</dt><dd>' + (s.lat != null && s.lng != null ? K.esc(Number(s.lat).toFixed(5) + ", " + Number(s.lng).toFixed(5)) : 'Belum ada posisi terkirim') + '</dd>' +
+          '<dt>Diperbarui</dt><dd>' + K.esc(K.fmtDateTime(s.diperbarui_pada)) + (s.diperbarui_pada ? ' (' + K.esc(K.relTime(s.diperbarui_pada)) + ')' : '') + '</dd></dl>' +
+          (url ? '<div class="form-actions" style="margin-top:13px"><a class="btn sm" href="' + K.esc(url) + '" target="_blank" rel="noopener">Buka Penampil</a><button class="btn ghost sm" type="button" data-copy-live="' + K.esc(url) + '">Salin Tautan</button></div>' : '') + '</div>';
+      }).join("");
+    }
+    async function loadDeadlines() {
+      var el = document.getElementById("deadlines");
+      var res = await c.from("descent_deadlines").select("*").eq("user_id", me).order("batas_waktu", { ascending: false }).limit(30);
+      if (res.error) throw res.error;
+      var rows = res.data || [];
+      if (!rows.length) { el.innerHTML = '<div class="empty">Belum ada Batas Waktu Turun pada akunmu. Buat dari aplikasi sebelum naik; statusnya akan terpantau di sini.</div>'; return; }
+      el.innerHTML = rows.map(function (d) {
+        var active = d.status === "aktif";
+        return '<div class="safety-item"><h3>' + K.esc(d.lokasi_nama || "Lokasi pendakian") + '</h3>' +
+          '<dl class="kv"><dt>Status</dt><dd>' + K.esc(d.status || "—") + '</dd><dt>Batas waktu</dt><dd>' + K.esc(K.fmtDateTime(d.batas_waktu)) + '</dd><dt>Keterangan</dt><dd>' + (active ? K.esc(remainingText(d.batas_waktu)) : 'Riwayat batas waktu turun') + '</dd></dl></div>';
+      }).join("");
+    }
+    async function loadContacts() {
+      var el = document.getElementById("contacts");
+      var res = await c.from("emergency_contacts").select("*").eq("user_id", me).order("urutan", { ascending: true });
+      if (res.error) throw res.error;
+      var rows = res.data || [];
+      if (!rows.length) { el.innerHTML = '<div class="empty">Belum ada kontak darurat pada akunmu. Tambahkan dari aplikasi JEJAKRUTE.</div>'; return; }
+      el.innerHTML = rows.map(function (ct) {
+        return '<div class="safety-item"><h3>' + K.esc(ct.nama || "Kontak darurat") + '</h3><dl class="kv"><dt>Kanal</dt><dd>' + K.esc(ct.kanal || "—") + '</dd><dt>Tujuan</dt><dd>' + K.esc(ct.tujuan || "—") + '</dd><dt>Urutan</dt><dd>' + K.esc(ct.urutan == null ? "—" : ct.urutan) + '</dd></dl></div>';
+      }).join("");
+    }
+
+    document.getElementById("liveShares").addEventListener("click", async function (e) {
+      var btn = e.target.closest("[data-copy-live]");
+      if (!btn) return;
+      try { await navigator.clipboard.writeText(btn.getAttribute("data-copy-live")); K.toast("Tautan Live Share disalin."); }
+      catch (_) { window.prompt("Salin tautan Live Share:", btn.getAttribute("data-copy-live")); }
+    });
+    var jobs = [
+      ["liveShares", loadLive],
+      ["deadlines", loadDeadlines],
+      ["contacts", loadContacts]
+    ];
+    await Promise.all(jobs.map(async function (pair) {
+      try { await pair[1](); }
+      catch (err) {
+        document.getElementById(pair[0]).innerHTML = '<div class="empty error">Data gagal dimuat dari server: ' + K.esc(err.message || err) + '</div>';
+      }
+    }));
+  }
+  mulai();
+})();
+</script>
+</body>
+</html>
