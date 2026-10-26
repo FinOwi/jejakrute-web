@@ -64,7 +64,7 @@
       +(l.perkiraan?'<p style="margin-top:8px">Catatan: sebagian angka lokasi ini masih berstatus perkiraan antar-sumber dan dicatat terbuka sampai ada penetapan resmi.</p>':'')
       +'<p class="src">Sumber: '+esc(l.sumber)+'</p></div>'
       +(pilot
-        ? '<div class="note"><b>Paket peta offline tersedia di aplikasi.</b> Lokasi ini adalah gunung pilot JEJAKRUTE: paket peta vektor offline (kontur, jalur, pos, titik penting) dapat diunduh di aplikasi dan dipakai tanpa internet, bersama data jalur hasil kurasi mendalam. <a href="'+APK_URL+'">Unduh aplikasi</a> untuk memakai paketnya.</div>'
+        ? '<div class="note"><b>Lokasi pilot JEJAKRUTE.</b> Lokasi ini termasuk lima gunung pilot dengan kurasi data mendalam di aplikasi — data medan (DEM), waypoint, dan informasi jalur; perekaman & navigasi tetap bekerja tanpa internet. <a href="'+APK_URL+'">Unduh aplikasi</a> untuk membawanya ke lapangan.</div>'
         : '<div class="note"><b>Paket jalur menyusul.</b> Lokasi ini tampil dengan data dasar terverifikasi; paket jalur mendalamnya dibangun bergelombang per wilayah. Di aplikasi, kamu tetap bisa merekam pendakianmu di sini lewat mode Rekam Bebas dan membagikannya sebagai Rute Komunitas.</div>')
       +'<p style="margin-top:14px"><a class="btn ghost sm" target="_blank" rel="noopener" href="https://www.google.com/maps?q='+l.lat+","+l.lng+'">Lihat di Google Maps</a></p>';
 
