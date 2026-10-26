@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Replay — JEJAKRUTE</title>
+<meta name="description" content="Putar ulang jalur GPX JEJAKRUTE di peta dengan penanda bergerak dan grafik elevasi tersinkron.">
+<link rel="icon" href="assets/logo/favicon.ico" sizes="48x48">
+<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/logo/apple-touch-icon.png">
+<link rel="manifest" href="assets/logo/site.webmanifest">
+<meta name="theme-color" content="#17191C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="assets/member.css">
+</head>
+<body data-member-page="feed">
+<div data-member-shell></div>
+
+<main class="member-main" data-member-main hidden>
+  <p><a href="feed.html">← Kembali ke Beranda</a></p>
+  <div style="margin-top:16px">
+    <p class="kicker">putar ulang jalur</p>
+    <h1 class="page-title">Replay</h1>
+    <p class="page-lead">Jalur, statistik, dan elevasi dihitung dari berkas GPX publik yang tersimpan di server.</p>
+  </div>
+
+  <div class="replay-layout" style="margin-top:22px">
+    <section class="card">
+      <div id="replayMap" aria-label="Peta Replay"></div>
+      <div class="replay-controls">
+        <button class="btn" type="button" id="playBtn" disabled>Putar</button>
+        <input id="progress" type="range" min="0" max="1000" value="0" disabled aria-label="Progres Replay">
+        <span class="small muted" id="progressText">0%</span>
+      </div>
+      <div class="replay-current">
+        <div><strong id="curDistance">0,0 km</strong><span>Jarak ditempuh</span></div>
+        <div><strong id="curElevation">—</strong><span>Elevasi titik</span></div>
+        <div><strong id="curTime">—</strong><span>Waktu titik</span></div>
+      </div>
+    </section>
+    <aside class="card">
+      <p class="kicker">detail jalur</p>
+      <h2 style="font-size:23px;letter-spacing:.04em;text-transform:uppercase">Statistik Replay</h2>
+      <div id="replayInfo"><p class="loading">Memuat GPX dari server…</p></div>
+      <canvas class="spark" id="replaySpark" style="height:130px;margin-top:16px" aria-label="Grafik elevasi Replay"></canvas>
+      <p class="small muted" style="margin-top:10px">Garis mint pada grafik dan penanda di peta bergerak bersama. Bila GPX tidak memiliki elevasi atau waktu, bagian tersebut dinyatakan apa adanya.</p>
+      <div id="replayBack" style="margin-top:16px"></div>
+    </aside>
+  </div>
+</main>
+
+<section class="member-lock" data-member-lock hidden></section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/member.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  "use strict";
+  var K = window.MemberKit;
+  var params = new URLSearchParams(location.search);
+  var info = document.getElementById("replayInfo");
+  var playBtn = document.getElementById("playBtn");
+  var slider = document.getElementById("progress");
+  var progressText = document.getElementById("progressText");
+  var analysis = null, map = null, marker = null, playing = false, progress = 0, rafId = null, lastTs = null;
+  var DURATION = 30000;
+
+  function fmtDuration(sec) {
+    if (sec == null || !isFinite(sec)) return "—";
+    sec = Math.max(0, Math.round(sec));
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(s).padStart(2, "0");
+  }
+  function setProgress(f) {
+    if (!analysis) return;
+    progress = Math.max(0, Math.min(1, f));
+    var idx = Math.min(analysis.points.length - 1, Math.round(progress * (analysis.points.length - 1)));
+    var p = analysis.points[idx];
+    if (marker) marker.setLatLng([p.lat, p.lon]);
+    slider.value = String(Math.round(progress * 1000));
+    progressText.textContent = Math.round(progress * 100) + "%";
+    document.getElementById("curDistance").textContent = K.fmtKm((analysis.cumulative[idx] || 0) / 1000);
+    document.getElementById("curElevation").textContent = p.ele == null || !isFinite(p.ele) ? "—" : K.fmtM(p.ele);
+    var timeText = "Titik " + (idx + 1) + " / " + analysis.points.length;
+    if (p.time && analysis.points[0].time) {
+      var elapsed = (new Date(p.time).getTime() - new Date(analysis.points[0].time).getTime()) / 1000;
+      if (isFinite(elapsed)) timeText = fmtDuration(elapsed);
+    }
+    document.getElementById("curTime").textContent = timeText;
+    K.drawSpark(document.getElementById("replaySpark"), analysis, progress);
+  }
+  function stopPlayback() {
+    playing = false;
+    playBtn.textContent = progress >= 1 ? "Putar Ulang" : "Putar";
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null; lastTs = null;
+  }
+  function tick(ts) {
+    if (!playing) return;
+    if (lastTs == null) lastTs = ts;
+    var delta = ts - lastTs;
+    lastTs = ts;
+    setProgress(progress + delta / DURATION);
+    if (progress >= 1) { stopPlayback(); return; }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  async function mulai() {
+    var ctx = await K.ready();
+    if (!ctx) return;
+    var c = ctx.client;
+    try {
+      var post = null, gpxUrl = params.get("gpx") || "";
+      if (!gpxUrl && params.get("post")) {
+        var res = await c.from("posts").select("*").eq("id", params.get("post")).single();
+        if (res.error) throw res.error;
+        post = res.data;
+        var items = K.mediaItems(post);
+        if (!items.length) throw new Error("Postingan ini tidak memiliki berkas GPX di server.");
+        gpxUrl = K.mediaUrl(items[0]);
+      }
+      if (!gpxUrl) throw new Error("Replay membutuhkan parameter postingan atau berkas GPX.");
+      analysis = await K.loadGPX(gpxUrl);
+      var author = null;
+      if (post && post.user_id) {
+        var mapProfiles = await K.profilesByIds([post.user_id]);
+        author = mapProfiles.get(post.user_id);
+      }
+      info.innerHTML =
+        (post ? '<dl class="kv"><dt>Postingan</dt><dd>' + K.esc(post.caption || post.lokasi_nama || "Replay GPX") + '</dd>' +
+          (author ? '<dt>Pembuat</dt><dd><a href="' + K.esc(K.profileLink(author)) + '">' + K.esc(K.displayName(author)) + '</a></dd>' : '') +
+          (post.lokasi_nama ? '<dt>Lokasi</dt><dd>' + K.esc(post.lokasi_nama) + '</dd>' : '') + '</dl>' : '<p class="muted">Sumber: berkas GPX dari tautan.</p>') +
+        '<div class="replay-stats" style="margin-top:16px"><div><strong>' + K.esc(K.fmtKm(analysis.distanceKm)) + '</strong><span>Jarak total</span></div><div><strong>' + K.esc(K.fmtM(analysis.gainM)) + '</strong><span>Total naik</span></div><div><strong>' + K.esc(K.fmtNum(analysis.points.length)) + '</strong><span>Titik jalur</span></div></div>';
+      if (post) document.getElementById("replayBack").innerHTML = '<a class="btn ghost" href="postingan.html?id=' + encodeURIComponent(post.id) + '">Kembali ke Postingan</a>';
+
+      if (!window.L) throw new Error("Pustaka peta Leaflet gagal dimuat.");
+      map = L.map("replayMap", { scrollWheelZoom: true });
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd", maxZoom: 20
+      }).addTo(map);
+      var coords = analysis.points.map(function (p) { return [p.lat, p.lon]; });
+      var line = L.polyline(coords, { color: "#17CE8F", weight: 4, opacity: 0.95 }).addTo(map);
+      L.circleMarker(coords[0], { radius: 6, color: "#052A1D", weight: 2, fillColor: "#17CE8F", fillOpacity: 1 }).addTo(map).bindTooltip("Awal");
+      L.circleMarker(coords[coords.length - 1], { radius: 6, color: "#fff", weight: 2, fillColor: "#FFB340", fillOpacity: 1 }).addTo(map).bindTooltip("Akhir");
+      marker = L.circleMarker(coords[0], { radius: 8, color: "#fff", weight: 2, fillColor: "#17CE8F", fillOpacity: 1 }).addTo(map);
+      map.fitBounds(line.getBounds(), { padding: [24, 24] });
+      playBtn.disabled = false;
+      slider.disabled = false;
+      setProgress(0);
+      setTimeout(function () { map.invalidateSize(); K.drawSpark(document.getElementById("replaySpark"), analysis, progress); }, 80);
+    } catch (err) {
+      info.innerHTML = '<div class="empty error">Replay gagal dimuat: ' + K.esc(err.message || err) + '</div>';
+    }
+  }
+  playBtn.addEventListener("click", function () {
+    if (!analysis) return;
+    if (playing) { stopPlayback(); return; }
+    if (progress >= 1) setProgress(0);
+    playing = true;
+    playBtn.textContent = "Jeda";
+    rafId = requestAnimationFrame(tick);
+  });
+  slider.addEventListener("input", function () {
+    stopPlayback();
+    setProgress(Number(slider.value) / 1000);
+    playBtn.textContent = progress >= 1 ? "Putar Ulang" : "Putar";
+  });
+  window.addEventListener("resize", function () {
+    if (analysis) K.drawSpark(document.getElementById("replaySpark"), analysis, progress);
+  });
+  mulai();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profil — JEJAKRUTE</title>
+<meta name="description" content="Profil pendaki JEJAKRUTE dari server yang sama dengan aplikasi: postingan, pengikut, lencana, dan tautan sosial.">
+<link rel="icon" href="assets/logo/favicon.ico" sizes="48x48">
+<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/logo/apple-touch-icon.png">
+<link rel="manifest" href="assets/logo/site.webmanifest">
+<meta name="theme-color" content="#17191C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/member.css">
+</head>
+<body data-member-page="profil">
+<div data-member-shell></div>
+
+<main class="member-main" data-member-main hidden>
+  <div id="profileRoot"><p class="loading">Memuat profil dari server…</p></div>
+  <section class="section" id="profilePostsSection" hidden>
+    <div class="section-head"><div><p class="kicker">jejak yang dibagikan</p><h2>Postingan</h2></div></div>
+    <div id="profilePosts"></div>
+  </section>
+</main>
+
+<section class="member-lock" data-member-lock hidden></section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/member.js"></script>
+<script>
+(function () {
+  "use strict";
+  var K = window.MemberKit;
+  var root = document.getElementById("profileRoot");
+  var postsSection = document.getElementById("profilePostsSection");
+  var postsEl = document.getElementById("profilePosts");
+  var params = new URLSearchParams(location.search);
+
+  function socialUrl(value, platform) {
+    if (!value) return "";
+    var v = String(value).trim();
+    if (!v) return "";
+    if (/^https?:\/\//i.test(v)) return v;
+    var clean = v.replace(/^@+/, "").replace(/\/$/, "");
+    if (platform === "instagram") return "https://instagram.com/" + clean.replace(/^instagram\.com\//i, "");
+    if (platform === "tiktok") return "https://tiktok.com/@" + clean.replace(/^tiktok\.com\/@?/i, "");
+    return v;
+  }
+  function socialLabel(value, platform) {
+    if (!value) return "";
+    var v = String(value).trim();
+    if (/^https?:\/\//i.test(v)) {
+      v = v.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
+      if (platform === "instagram") v = v.replace(/^instagram\.com\//i, "");
+      if (platform === "tiktok") v = v.replace(/^tiktok\.com\//i, "");
+    }
+    return v.charAt(0) === "@" ? v : "@" + v.replace(/^@+/, "");
+  }
+  function badgeLabel(x) {
+    if (!x) return "";
+    if (typeof x === "string") return x;
+    return x.lokasi_nama || x.nama || x.label || x.name || x.judul || "Lencana JEJAKRUTE";
+  }
+  function tileHTML(post) {
+    var items = K.mediaItems(post), inner = "";
+    if (post.jenis === "foto" && items.length) inner = '<img src="' + K.esc(K.mediaUrl(items[0])) + '" alt="" loading="lazy">';
+    else if (post.jenis === "video" && items.length) inner = '<video preload="metadata" src="' + K.esc(K.mediaUrl(items[0])) + '"></video>';
+    else if (post.jenis === "gpx") inner = '<div class="tile-text"><strong>Replay GPX</strong><br>' + K.esc(post.caption || post.lokasi_nama || "Jalur dari server") + '</div>';
+    else inner = '<div class="tile-text">' + K.esc(post.caption || "Postingan teks") + '</div>';
+    return '<a class="post-tile" href="postingan.html?id=' + encodeURIComponent(post.id) + '">' + inner + '<span class="tile-kind">' + K.esc(post.jenis || "teks") + '</span></a>';
+  }
+
+  async function mulai() {
+    var ctx = await K.ready();
+    if (!ctx) return;
+    var c = ctx.client, me = ctx.session.user.id;
+
+    async function countEq(table, column, value) {
+      var res = await c.from(table).select(column, { count: "exact", head: true }).eq(column, value);
+      if (res.error) throw res.error;
+      return res.count || 0;
+    }
+    async function resolveProfile() {
+      var q = c.from("profiles").select("*");
+      if (params.get("u")) q = q.eq("username", params.get("u"));
+      else if (params.get("id")) q = q.eq("id", params.get("id"));
+      else q = q.eq("id", me);
+      var res = await q.single();
+      if (res.error) throw res.error;
+      return res.data;
+    }
+    async function loadProfile() {
+      root.innerHTML = '<p class="loading">Memuat profil dari server…</p>';
+      postsSection.hidden = true;
+      var p = await resolveProfile();
+      var own = p.id === me;
+      var counts = await Promise.all([
+        countEq("posts", "user_id", p.id),
+        countEq("follows", "diikuti", p.id),
+        countEq("follows", "pengikut", p.id)
+      ]);
+      var badgesRes = await c.from("user_badges").select("*").eq("user_id", p.id).order("lokasi_nama", { ascending: true });
+      if (badgesRes.error) throw badgesRes.error;
+      var badges = badgesRes.data || [];
+      var followState = null;
+      if (!own) {
+        var fr = await c.from("follows").select("pengikut,diikuti").eq("pengikut", me).eq("diikuti", p.id).maybeSingle();
+        if (fr.error) throw fr.error;
+        followState = !!fr.data;
+      }
+      var postsQuery = c.from("posts").select("*").eq("user_id", p.id).order("created_at", { ascending: false }).limit(90);
+      if (!own) postsQuery = postsQuery.eq("status_moderasi", "tampil");
+      var postsRes = await postsQuery;
+      if (postsRes.error) throw postsRes.error;
+      var posts = postsRes.data || [];
+      var sosial = p.sosial || {};
+      var chips = "";
+      ["instagram", "tiktok"].forEach(function (platform) {
+        if (sosial[platform]) {
+          chips += '<a class="social-chip" href="' + K.esc(socialUrl(sosial[platform], platform)) + '" target="_blank" rel="noopener">' + K.esc(platform === "instagram" ? "Instagram" : "TikTok") + ' · ' + K.esc(socialLabel(sosial[platform], platform)) + '</a>';
+        }
+      });
+      var cover = p.cover_path ? '<img src="' + K.esc(K.mediaUrl(p.cover_path)) + '" alt="">' : '';
+      var action = own
+        ? '<a class="btn ghost" href="#editProfil">Edit Profil</a>'
+        : '<button class="btn' + (followState ? ' plain' : '') + '" type="button" data-follow="' + (followState ? '1' : '0') + '">' + (followState ? 'Berhenti Ikuti' : 'Ikuti') + '</button>';
+      var installed = Array.isArray(p.lencana_terpasang) ? p.lencana_terpasang.map(badgeLabel).filter(Boolean) : [];
+      root.innerHTML =
+        '<div class="profile-cover">' + cover + '</div>' +
+        '<section class="profile-card"><div class="profile-top">' + K.avatarHTML(p, "profile-avatar", ctx.session.user) +
+        '<div class="profile-names"><h1>' + K.esc(K.displayName(p)) + (p.terverifikasi ? ' <span class="pill verif">Terverifikasi</span>' : '') + '</h1><div class="uname">' + K.esc(K.usernameLabel(p)) + '</div></div>' +
+        '<div class="profile-actions">' + action + '</div></div>' +
+        '<p class="profile-bio">' + K.esc(p.bio || "Belum ada bio.") + '</p>' +
+        (chips ? '<div class="social-row">' + chips + '</div>' : '') +
+        '<div class="profile-stats"><div><strong>' + K.fmtNum(counts[0]) + '</strong><span>Postingan</span></div><div><strong>' + K.fmtNum(counts[1]) + '</strong><span>Pengikut</span></div><div><strong>' + K.fmtNum(counts[2]) + '</strong><span>Mengikuti</span></div></div>' +
+        '</section>' +
+        '<section class="card"><div class="section-head"><div><p class="kicker">dari server, bukan karangan</p><h2>Lencana Gunung</h2></div></div>' +
+        (badges.length ? '<div class="badge-list">' + badges.map(function (b) {
+          return '<span class="badge-chip">' + K.esc(b.lokasi_nama || b.lokasi_id || "Lokasi") + (b.jumlah ? ' · ' + K.fmtNum(b.jumlah) + '×' : '') + '</span>';
+        }).join("") + '</div>' : '<div class="empty">Belum ada Lencana Gunung yang tercatat di server untuk profil ini.</div>') +
+        (installed.length ? '<h3 style="margin-top:18px">Lencana Terpasang</h3><div class="badge-list" style="margin-top:10px">' + installed.map(function (b) { return '<span class="badge-chip">' + K.esc(b) + '</span>'; }).join("") + '</div>' : '') +
+        '</section>' +
+        (own ? editFormHTML(p, sosial) : '');
+      postsSection.hidden = false;
+      postsEl.innerHTML = posts.length ? '<div class="post-grid">' + posts.map(tileHTML).join("") + '</div>' : '<div class="empty">Belum ada postingan tampil dari profil ini.</div>';
+      bindProfileActions(p, own);
+    }
+    function editFormHTML(p, sosial) {
+      return '<section class="card" id="editProfil" style="margin-top:16px"><div class="section-head"><div><p class="kicker">profil saya</p><h2>Edit Profil</h2></div></div>' +
+        '<form class="member-form" id="editProfileForm">' +
+        '<div class="form-grid"><div><label for="editNama">Nama</label><input id="editNama" value="' + K.esc(p.nama || "") + '" maxlength="60" required></div>' +
+        '<div><label for="editUsername">Username</label><input id="editUsername" value="' + K.esc(p.username || "") + '" maxlength="24" required></div></div>' +
+        '<div><label for="editBio">Bio</label><textarea id="editBio" maxlength="500">' + K.esc(p.bio || "") + '</textarea></div>' +
+        '<div class="form-grid"><div><label for="editInstagram">Instagram</label><input id="editInstagram" value="' + K.esc(sosial.instagram || "") + '" maxlength="160" placeholder="username, @username, atau URL"></div>' +
+        '<div><label for="editTiktok">TikTok</label><input id="editTiktok" value="' + K.esc(sosial.tiktok || "") + '" maxlength="160" placeholder="username, @username, atau URL"></div></div>' +
+        '<div><label for="editAvatar">Foto profil baru</label><input id="editAvatar" type="file" accept="image/*"></div>' +
+        '<div class="form-actions"><button class="btn" type="submit">Simpan Profil</button><span class="small muted" id="editMsg"></span></div></form></section>';
+    }
+    function bindProfileActions(p, own) {
+      var followBtn = root.querySelector("[data-follow]");
+      if (followBtn) {
+        followBtn.addEventListener("click", async function () {
+          followBtn.disabled = true;
+          try {
+            var res = followBtn.getAttribute("data-follow") === "1"
+              ? await c.from("follows").delete().eq("pengikut", me).eq("diikuti", p.id)
+              : await c.from("follows").insert({ pengikut: me, diikuti: p.id });
+            if (res.error) throw res.error;
+            await loadProfile();
+          } catch (err) {
+            K.toast("Ikuti gagal diubah di server: " + (err.message || err));
+            followBtn.disabled = false;
+          }
+        });
+      }
+      var form = document.getElementById("editProfileForm");
+      if (form && own) {
+        form.addEventListener("submit", async function (e) {
+          e.preventDefault();
+          var msg = document.getElementById("editMsg");
+          var nama = document.getElementById("editNama").value.trim();
+          var uname = document.getElementById("editUsername").value.trim().toLowerCase();
+          var bio = document.getElementById("editBio").value.trim();
+          var file = document.getElementById("editAvatar").files[0];
+          if (nama.length < 2) { msg.textContent = "Nama minimal 2 karakter."; return; }
+          if (!/^[a-z0-9._]{3,24}$/.test(uname)) { msg.textContent = "Username harus 3–24 karakter: huruf kecil, angka, titik, atau garis bawah."; return; }
+          var btn = form.querySelector('button[type="submit"]');
+          btn.disabled = true; msg.textContent = "Menyimpan ke server…";
+          try {
+            var used = await c.from("profiles").select("id").eq("username", uname).neq("id", me).limit(1);
+            if (used.error) throw used.error;
+            if (used.data && used.data.length) throw new Error("Username itu sudah dipakai — coba variasi lain.");
+            var sosial = Object.assign({}, p.sosial || {}, {
+              instagram: document.getElementById("editInstagram").value.trim(),
+              tiktok: document.getElementById("editTiktok").value.trim()
+            });
+            var payload = { nama: nama, username: uname, bio: bio, sosial: sosial };
+            if (file) {
+              if (!file.type || file.type.indexOf("image/") !== 0) throw new Error("Foto profil harus berupa gambar.");
+              var avatarPath = me + "/avatar-" + Date.now() + ".jpg";
+              var up = await c.storage.from("media").upload(avatarPath, file, { contentType: file.type, upsert: false });
+              if (up.error) throw up.error;
+              payload.avatar_path = avatarPath;
+            }
+            var upd = await c.from("profiles").update(payload).eq("id", me);
+            if (upd.error) throw upd.error;
+            location.replace("profil.html?u=" + encodeURIComponent(uname));
+          } catch (err) {
+            msg.textContent = "Gagal menyimpan: " + (err.message || err);
+            btn.disabled = false;
+          }
+        });
+      }
+    }
+
+    try { await loadProfile(); }
+    catch (err) {
+      root.innerHTML = '<div class="empty error">Profil gagal dimuat dari server: ' + K.esc(err.message || err) + '</div>';
+    }
+  }
+  mulai();
+})();
+</script>
+</body>
+</html>
