@@ -10,6 +10,7 @@
   var SB_URL = "https://qykzrcygsyeznzmsdohp.supabase.co";
   var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5a3pyY3lnc3llem56bXNkb2hwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NDM3MjAsImV4cCI6MjEwODQxOTcyMH0.T4y-jdD9OJK8LSNE26mydKXWDzCKoIeCy_BBvm57LlA";
   var client = null, session = null, profile = null, lastCtx = "", lastFocus = null;
+  var pendingGo = "";
   var readyResolve = null;
   var jrReady = new Promise(function (resolve) { readyResolve = resolve; });
   function selesaikanReady() {
@@ -62,15 +63,42 @@
     ".jr-f label{display:block;font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9AA0A3;margin:14px 0 6px}",
     ".jr-f input{width:100%;background:#17191C;border:1px solid #33373C;border-radius:11px;padding:12px 14px;color:#F4F5F3;font-size:15px;font-family:inherit}",
     ".jr-f input:focus{outline:2px solid #17CE8F;outline-offset:1px}",
-    ".jr-hint{font-size:12.8px;color:#9AA0A3;margin-top:5px;line-height:1.5}"
+    ".jr-hint{font-size:12.8px;color:#9AA0A3;margin-top:5px;line-height:1.5}",
+    /* Laci navigasi (garis 3) — disuntikkan ke semua halaman */
+    ".jr-burger{width:42px;height:42px;border-radius:50%;border:1px solid #33373C;background:#24272B;color:#F4F5F3;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;padding:0}",
+    ".jr-burger:hover{border-color:#17CE8F;color:#17CE8F}",
+    ".jr-burger svg{width:20px;height:20px}",
+    ".topbar-in.jr-has-burger{grid-template-columns:auto 1fr auto 1fr}",
+    "@media (max-width:640px){.topbar-in.jr-has-burger{grid-template-columns:auto 1fr auto}}",
+    ".jr-scrim{position:fixed;inset:0;z-index:290;background:rgba(9,11,12,.66);opacity:0;pointer-events:none;transition:opacity .25s ease}",
+    ".jr-scrim.open{opacity:1;pointer-events:auto}",
+    ".jr-drawer{position:fixed;top:0;left:0;bottom:0;z-index:295;width:min(320px,86vw);background:#1E2124;border-right:1px solid #33373C;color:#F4F5F3;font-family:'Inter',system-ui,sans-serif;transform:translateX(-105%);transition:transform .25s ease;display:flex;flex-direction:column;padding:18px 18px 22px;overflow-y:auto;visibility:hidden}",
+    ".jr-drawer.open{transform:none;visibility:visible}",
+    ".jr-drawer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}",
+    ".jr-drawer-lockup{height:40px;width:auto}",
+    ".jr-drawer-x{position:static;flex:none}",
+    ".jr-menu{display:flex;flex-direction:column;margin-top:20px;border-top:1px solid #33373C}",
+    ".jr-menu a{color:#F4F5F3;text-decoration:none;font-family:'Oswald',sans-serif;font-weight:500;font-size:15.5px;letter-spacing:.06em;text-transform:uppercase;padding:12px 6px;border-bottom:1px solid #33373C;display:flex;align-items:center;justify-content:space-between;gap:10px}",
+    ".jr-menu a:hover{color:#17CE8F}",
+    ".jr-menu a .jr-lock{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.05em;color:#9AA0A3;border:1px solid #33373C;border-radius:999px;padding:2px 8px;text-transform:none}",
+    ".jr-drawer-acc{margin-top:auto;padding-top:20px}",
+    ".jr-drawer-note{color:#9AA0A3;font-size:13.5px;line-height:1.6;margin-bottom:12px}",
+    ".jr-drawer .jr-who{margin-top:0;margin-bottom:14px}",
+    ".jr-drawer .jr-row{margin-top:0}"
   ].join("\n");
 
-  var modal = null;
-  function buildModal() {
-    if (modal) return modal;
+  var styleInjected = false;
+  function injectStyle() {
+    if (styleInjected) return;
+    styleInjected = true;
     var st = document.createElement("style");
     st.textContent = CSS;
     document.head.appendChild(st);
+  }
+  var modal = null;
+  function buildModal() {
+    if (modal) return modal;
+    injectStyle();
     var ov = document.createElement("div");
     ov.className = "jr-ov";
     ov.setAttribute("hidden", "");
@@ -186,11 +214,131 @@
     showPane("in");
   }
 
+  /* ---------- Laci navigasi (garis 3) ---------- */
+  var drawer = null, scrim = null;
+  var BURGER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+  var MENU_ITEMS = [
+    { label: "Beranda", href: "index.html" },
+    { label: "Feed Komunitas", href: "feed.html", gated: true },
+    { label: "Jelajah", href: "jelajah.html", gated: true },
+    { label: "Katalog", href: "katalog.html" },
+    { label: "Rute Komunitas", href: "rute-komunitas.html" },
+    { label: "Live Share", href: "live.html" },
+    { label: "Donasi", href: "donasi.html" },
+    { label: "Aman", href: "aman.html", gated: true },
+    { label: "Profil", href: "profil.html", gated: true }
+  ];
+  function buildChrome() {
+    if (drawer) return;
+    injectStyle();
+    scrim = document.createElement("div");
+    scrim.className = "jr-scrim";
+    scrim.setAttribute("data-jr-scrim", "");
+    document.body.appendChild(scrim);
+    drawer = document.createElement("aside");
+    drawer.className = "jr-drawer";
+    drawer.setAttribute("aria-label", "Menu navigasi");
+    drawer.innerHTML =
+      '<div class="jr-drawer-head">' +
+      '<img class="jr-drawer-lockup" src="assets/logo/logo-lockup-reversed.png" alt="JEJAKRUTE">' +
+      '<button class="jr-x jr-drawer-x" type="button" data-jr-drawer-close aria-label="Tutup menu">&times;</button>' +
+      "</div>" +
+      '<nav class="jr-menu">' + MENU_ITEMS.map(function (it) {
+        return '<a href="' + it.href + '"' + (it.gated ? ' data-drawer-go="' + it.href + '"' : "") + ">" + it.label +
+          (it.gated ? '<span class="jr-lock" data-jr-lock>Anggota</span>' : "") + "</a>";
+      }).join("") + "</nav>" +
+      '<div class="jr-drawer-acc" data-jr-drawer-acc></div>';
+    document.body.appendChild(drawer);
+    scrim.addEventListener("click", closeDrawer);
+    drawer.querySelector("[data-jr-drawer-close]").addEventListener("click", closeDrawer);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeDrawer();
+    });
+    drawer.querySelectorAll("[data-drawer-go]").forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        var target = a.getAttribute("data-drawer-go");
+        if (session) return; /* sudah masuk: tautan berjalan biasa */
+        e.preventDefault();
+        pendingGo = target;
+        try { sessionStorage.setItem("jr_go_after_login", target); } catch (_) {}
+        closeDrawer();
+        openModal("Bagian ini khusus anggota. Masuk dulu — setelah itu kamu langsung diarahkan ke sana.");
+      });
+    });
+    segarkanLaci();
+    /* Tombol garis 3 di header halaman publik. Halaman anggota punya
+       tombolnya sendiri dari member.js (data-member-shell). */
+    if (!document.querySelector("[data-member-shell]")) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "jr-burger";
+      btn.setAttribute("aria-label", "Buka menu navigasi");
+      btn.innerHTML = BURGER_SVG;
+      btn.addEventListener("click", openDrawer);
+      var host = document.querySelector(".topbar-in") || document.querySelector("header.site .nav");
+      if (host) {
+        host.insertBefore(btn, host.firstChild);
+        host.classList.add("jr-has-burger");
+      }
+    }
+  }
+  function openDrawer() {
+    buildChrome();
+    segarkanLaci();
+    drawer.classList.add("open");
+    scrim.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.classList.remove("open");
+    if (scrim) scrim.classList.remove("open");
+    if (!modal || modal.hasAttribute("hidden")) document.body.style.overflow = "";
+  }
+  function segarkanLaci() {
+    if (!drawer) return;
+    var acc = drawer.querySelector("[data-jr-drawer-acc]");
+    drawer.querySelectorAll("[data-jr-lock]").forEach(function (el) { el.hidden = !!session; });
+    if (!session) {
+      acc.innerHTML = '<p class="jr-drawer-note">Masuk untuk membuka Feed Komunitas, Jelajah, Aman &amp; Profil — satu akun untuk aplikasi &amp; website.</p>' +
+        '<button class="jr-btn" type="button" data-jr-drawer-login style="width:100%">Masuk / Daftar</button>';
+      acc.querySelector("[data-jr-drawer-login]").addEventListener("click", function () {
+        closeDrawer();
+        openModal("");
+      });
+      return;
+    }
+    var u = session.user, meta = u.user_metadata || {};
+    var nama = (profile && profile.nama) || meta.full_name || meta.name || "Pendaki JEJAKRUTE";
+    var uname = profile && profile.username ? "@" + profile.username : (u.email || "");
+    var lengkap = !!(profile && profile.username);
+    var ava = meta.avatar_url
+      ? '<img src="' + meta.avatar_url + '" alt="">'
+      : (nama || "J").charAt(0).toUpperCase();
+    acc.innerHTML =
+      '<div class="jr-who"><span class="jr-ava">' + ava + '</span><span><span class="jr-nm"></span><br><span class="jr-un"></span></span></div>' +
+      (lengkap ? "" : '<p class="jr-drawer-note"><strong style="color:#F4F5F3">Profilmu belum lengkap.</strong> Lengkapi nama &amp; username untuk membuka semua fitur anggota.</p>') +
+      '<div class="jr-row">' +
+      (lengkap
+        ? '<a class="jr-btn plain" href="profil.html" style="text-decoration:none">Profil Saya</a>'
+        : '<button class="jr-btn" type="button" data-jr-drawer-lengkapi>Lengkapi Profil</button>') +
+      '<button class="jr-btn plain" type="button" data-jr-drawer-keluar>Keluar</button>' +
+      "</div>";
+    acc.querySelector(".jr-nm").textContent = nama;
+    acc.querySelector(".jr-un").textContent = uname;
+    var lgk = acc.querySelector("[data-jr-drawer-lengkapi]");
+    if (lgk) lgk.addEventListener("click", function () { closeDrawer(); openModal(""); showPane("form"); });
+    acc.querySelector("[data-jr-drawer-keluar]").addEventListener("click", function () { closeDrawer(); logout(); });
+  }
+
   /* ---------- Aksi auth ---------- */
   function loginGoogle() {
     if (!ensureClient()) {
       setErr("[data-jr-err]", "Layanan masuk belum termuat — periksa koneksimu lalu coba lagi.");
       return;
+    }
+    if (pendingGo) {
+      try { sessionStorage.setItem("jr_go_after_login", pendingGo); } catch (_) {}
     }
     client.auth.signInWithOAuth({
       provider: "google",
@@ -259,7 +407,11 @@
         if (go) {
           jrReady.then(function () {
             if (session) location.href = go;
-            else openModal(b.getAttribute("data-ctx") || "");
+            else {
+              pendingGo = go;
+              try { sessionStorage.setItem("jr_go_after_login", go); } catch (_) {}
+              openModal(b.getAttribute("data-ctx") || "");
+            }
           });
           return;
         }
@@ -298,12 +450,29 @@
   /* ---------- Mulai ---------- */
   function mulai() {
     ikatTombol();
+    buildChrome();
     if (!ensureClient()) { selesaikanReady(); return; }
     client.auth.getSession().then(function (res) {
       session = res.data.session;
       return muatProfil();
     }).then(function () {
       segarkanTombol();
+      segarkanLaci();
+      /* Tujuan sesudah masuk (dari laci / tombol data-go): arahkan sekali,
+         lalu kunci tujuan dihapus agar tidak berputar. */
+      var tujuan = null;
+      try { tujuan = sessionStorage.getItem("jr_go_after_login"); } catch (_) {}
+      if (session && tujuan) {
+        try { sessionStorage.removeItem("jr_go_after_login"); } catch (_) {}
+        pendingGo = "";
+        var berkasIni = (location.pathname.split("/").pop() || "index.html");
+        var berkasTujuan = tujuan.split("?")[0].split("/").pop();
+        if (berkasTujuan && berkasTujuan !== berkasIni) {
+          selesaikanReady();
+          location.href = tujuan;
+          return;
+        }
+      }
       /* Baru kembali dari Google & profil belum lengkap → tawarkan form daftar sekali. */
       if (session && (!profile || !profile.username) && !sessionStorage.getItem("jr_form_ditawar")) {
         sessionStorage.setItem("jr_form_ditawar", "1");
@@ -317,13 +486,15 @@
     }).catch(function () { selesaikanReady(); /* tetap tampil sebagai belum masuk */ });
     client.auth.onAuthStateChange(function (_ev, s) {
       session = s;
-      muatProfil().then(function () { segarkanTombol(); if (modal && !modal.hasAttribute("hidden")) renderState(); });
+      muatProfil().then(function () { segarkanTombol(); segarkanLaci(); if (modal && !modal.hasAttribute("hidden")) renderState(); });
     });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mulai);
   else mulai();
 
   window.jrOpenLogin = openModal;
+  window.jrOpenDrawer = openDrawer;
+  window.jrCloseDrawer = closeDrawer;
   window.jrUnduhGpx = unduhGpx;
   window.jrReady = jrReady;
   window.jr = {
