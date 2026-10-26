@@ -58,7 +58,7 @@ function kartuRute(r){
     +'<div class="nums"><span>'+fmtKm(r.jarak_km)+'</span><span>▲ '+Math.round(r.naik_m||0)+' m</span>'
     +((r.unduhan||r.pemakaian)?'<span style="color:var(--mut);font-weight:600">⬇ '+r.unduhan+' • dipakai '+r.pemakaian+'×</span>':'')
     +'</div><div class="foot"><span class="meta">Berkas GPX publik dari rekaman pendaki</span>'
-    +'<a class="btn sm" href="'+gpxUrl(r.gpx_path)+'" download>Unduh GPX</a></div></article>';
+    +'<button class="btn sm" type="button" data-gpx="'+gpxUrl(r.gpx_path)+'">Unduh GPX</button></div></article>';
 }
 
 /* Tandai menu aktif */

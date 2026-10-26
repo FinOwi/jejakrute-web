@@ -5,16 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Share — Pantau Posisi Pendaki | JEJAKRUTE</title>
 <meta name="description" content="Penampil Live Share JEJAKRUTE: keluarga dapat melihat posisi terakhir pendaki lewat tautan, tanpa memasang aplikasi.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%2317191c'/><path d='M28 68 L46 34 L58 54 L64 44 L76 68 Z' fill='%2317ce8f'/></svg>">
+<link rel="icon" href="assets/logo/favicon.ico" sizes="48x48">
+<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/logo/apple-touch-icon.png">
+<link rel="manifest" href="assets/logo/site.webmanifest">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 <header class="site"><div class="wrap nav">
-  <a class="logo" href="index.html"><span class="mark">▲</span>JEJAKRUTE<span class="dot"></span></a>
+  <a class="logo" href="index.html"><img class="mark" src="assets/logo/logo-symbol-reversed.png" alt="">JEJAKRUTE<span class="dot"></span></a>
   <nav class="menu">
     <a href="index.html">Beranda</a><a href="katalog.html">Katalog</a><a href="rute-komunitas.html">Rute Komunitas</a><a href="live.html">Live Share</a><a href="donasi.html">Donasi</a>
   </nav>
-  <a class="btn" href="https://github.com/FinOwi/jejakrute/releases/download/v0.18.1/JEJAKRUTE-Pratinjau-v0.18.1-arm64.apk">Unduh Aplikasi</a>
+  <button class="btn ghost" type="button" data-jr-login style="margin-right:10px">Masuk</button><a class="btn" href="https://github.com/FinOwi/jejakrute/releases/download/v0.27.3/JEJAKRUTE-Pratinjau-v0.27.3-arm64.apk">Unduh Aplikasi</a>
 </div></header>
 
 <section style="padding-top:44px"><div class="wrap">
@@ -39,7 +42,7 @@
 <footer><div class="wrap">
   <div class="cols">
     <div>
-      <a class="logo" href="index.html" style="margin-bottom:10px"><span class="mark">▲</span>JEJAKRUTE<span class="dot"></span></a>
+      <a class="logo" href="index.html" style="margin-bottom:10px"><img class="mark" src="assets/logo/logo-symbol-reversed.png" alt="">JEJAKRUTE<span class="dot"></span></a>
       <p>Aplikasi GPS pendaki &amp; wisata alam Indonesia. Rekam pendakianmu, pulang dengan selamat. Gratis dengan donasi — dikembangkan oleh FinOwi Id, Medan.</p>
     </div>
     <div><h4>Jelajah</h4><a href="katalog.html">Katalog Nasional</a><a href="rute-komunitas.html">Rute Komunitas</a><a href="live.html">Live Share</a></div>
@@ -112,5 +115,7 @@
   const t0=new URLSearchParams(location.search).get("t");
   if(t0){ inp.value=t0; muat(t0); }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/auth.js"></script>
 </body>
 </html>

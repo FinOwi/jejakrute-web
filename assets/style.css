@@ -128,3 +128,6 @@ footer p{color:var(--mut);font-size:13.5px}
   .hero{padding:48px 0 40px}
   section{padding:38px 0}
 }
+
+.logo img.mark{object-fit:contain;padding:4px}
+button.btn{font:inherit;cursor:pointer}
