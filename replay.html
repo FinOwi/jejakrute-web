@@ -19,7 +19,7 @@
 <body data-member-page="feed">
 <div data-member-shell></div>
 
-<main class="member-main" data-member-main hidden>
+<main class="member-main member-wide" data-member-main hidden>
   <p><a href="feed.html">← Kembali ke Beranda</a></p>
   <div style="margin-top:16px">
     <p class="kicker">putar ulang jalur</p>
@@ -120,9 +120,9 @@
         var res = await c.from("posts").select("*").eq("id", params.get("post")).single();
         if (res.error) throw res.error;
         post = res.data;
-        var items = K.mediaItems(post);
-        if (!items.length) throw new Error("Postingan ini tidak memiliki berkas GPX di server.");
-        gpxUrl = K.mediaUrl(items[0]);
+        var rpItem = K.replayItemOf(post) || K.mediaItems(post)[0];
+        if (!rpItem || !rpItem.path) throw new Error("Postingan ini tidak memiliki berkas GPX di server.");
+        gpxUrl = K.mediaUrl(rpItem.path);
       }
       if (!gpxUrl) throw new Error("Replay membutuhkan parameter postingan atau berkas GPX.");
       analysis = await K.loadGPX(gpxUrl);

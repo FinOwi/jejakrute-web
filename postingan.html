@@ -20,9 +20,9 @@
 
 <main class="member-main" data-member-main hidden>
   <p><a href="feed.html">← Kembali ke Beranda</a></p>
-  <section id="postDetail" style="margin-top:16px"><p class="loading">Memuat postingan dari server…</p></section>
+  <section id="postDetail"><p class="loading">Memuat postingan dari server…</p></section>
 
-  <section class="card" id="commentCard" hidden>
+  <section class="card" id="commentCard" hidden style="margin-top:16px">
     <div class="section-head">
       <div><p class="kicker">diskusi jalur</p><h2>Komentar</h2></div>
       <span class="pill" id="commentCount">0 komentar</span>
@@ -49,24 +49,6 @@
   var detail = document.getElementById("postDetail");
   var commentCard = document.getElementById("commentCard");
   var commentList = document.getElementById("commentList");
-
-  function mediaHTML(post) {
-    var items = K.mediaItems(post);
-    if (post.jenis === "foto" && items.length) {
-      return '<div class="post-gallery">' + items.map(function (path, i) {
-        return '<figure><img src="' + K.esc(K.mediaUrl(path)) + '" alt="Foto postingan ' + (i + 1) + '"></figure>';
-      }).join("") + '</div>' + (items.length > 1 ? '<div class="gallery-count">' + items.length + ' foto — geser untuk melihat</div>' : '');
-    }
-    if (post.jenis === "gpx") {
-      return '<div class="replay-card"><span class="pill verif">Replay GPX</span>' +
-        '<div class="replay-stats"><div><strong data-gpx-distance>…</strong><span>Jarak</span></div><div><strong data-gpx-gain>…</strong><span>Kenaikan</span></div><div><strong data-gpx-points>…</strong><span>Titik</span></div></div>' +
-        '<canvas class="spark" data-gpx-spark aria-label="Grafik elevasi Replay"></canvas>' +
-        '<p class="small muted" data-gpx-status style="margin-top:9px">Menghitung statistik dari GPX server…</p>' +
-        '<div class="form-actions" style="margin-top:12px"><a class="btn sm" href="replay.html?post=' + encodeURIComponent(post.id) + '">Putar Replay</a></div></div>';
-    }
-    if (post.jenis === "video" && items.length) return '<video class="post-video" controls preload="metadata" src="' + K.esc(K.mediaUrl(items[0])) + '"></video>';
-    return "";
-  }
 
   async function mulai() {
     var ctx = await K.ready();
@@ -100,38 +82,19 @@
         commentCount: (results[3].data || []).length
       };
     }
-    async function hydrateGPX(post) {
-      if (post.jenis !== "gpx") return;
-      var items = K.mediaItems(post), status = detail.querySelector("[data-gpx-status]");
-      if (!items.length) { if (status) status.textContent = "Postingan ini tidak memiliki berkas GPX di server."; return; }
-      try {
-        var a = await K.loadGPX(K.mediaUrl(items[0]));
-        detail.querySelector("[data-gpx-distance]").textContent = K.fmtKm(a.distanceKm);
-        detail.querySelector("[data-gpx-gain]").textContent = K.fmtM(a.gainM);
-        detail.querySelector("[data-gpx-points]").textContent = K.fmtNum(a.points.length);
-        K.drawSpark(detail.querySelector("[data-gpx-spark]"), a, 1);
-        if (status) status.textContent = "Statistik dihitung dari berkas GPX publik di server.";
-      } catch (err) { if (status) status.textContent = "GPX belum dapat dihitung: " + (err.message || err); }
-    }
     async function refreshPost() {
       var post = await fetchPost();
       var s = await fetchSocial(post);
-      var a = s.author, link = K.profileLink(a), own = post.user_id === me;
-      detail.innerHTML = '<article class="post-card">' +
-        '<div class="post-head"><a href="' + K.esc(link) + '">' + K.avatarHTML(a, "", null) + '</a><div class="post-author"><a href="' + K.esc(link) + '">' + K.esc(K.displayName(a)) + '</a><div class="post-meta">' + K.esc(K.usernameLabel(a)) + (K.usernameLabel(a) ? ' · ' : '') + K.esc(K.relTime(post.created_at)) + '</div>' + (post.lokasi_nama ? '<div class="post-location">' + K.esc(post.lokasi_nama) + '</div>' : '') + '</div>' +
-        (post.status_moderasi !== "tampil" ? '<span class="pill belum">' + K.esc(post.status_moderasi) + '</span>' : '') + '</div>' +
-        mediaHTML(post) +
-        (post.caption ? '<div class="post-body"><p class="post-caption">' + K.esc(post.caption) + '</p></div>' : '') +
-        '<div class="post-actions">' +
-        '<button class="action-btn' + (s.liked ? ' active' : '') + '" type="button" data-act="like" data-state="' + (s.liked ? '1' : '0') + '">' + K.icons.heart + '<span>' + K.fmtNum(s.likeCount) + '</span></button>' +
-        '<span class="action-btn">' + K.icons.comment + '<span>' + K.fmtNum(s.commentCount) + '</span></span>' +
-        '<button class="action-btn' + (s.saved ? ' active' : '') + '" type="button" data-act="save" data-state="' + (s.saved ? '1' : '0') + '">' + K.icons.bookmark + '<span>Simpan</span></button>' +
-        '<span class="action-spacer"></span>' +
-        '<button class="action-btn" type="button" data-act="share">' + K.icons.share + '<span>Bagikan</span></button>' +
-        (own ? '<button class="action-btn" type="button" data-act="delete">' + K.icons.trash + '<span>Hapus</span></button>' : '<button class="action-btn" type="button" data-act="report">' + K.icons.flag + '<span>Laporkan</span></button>') +
-        '</div></article>';
+      var decorated = Object.assign({}, post, {
+        _author: s.author, _likeCount: s.likeCount, _liked: s.liked,
+        _saved: s.saved, _commentCount: s.commentCount
+      });
+      detail.innerHTML = K.postCardHTML(decorated, { commentsHref: "#commentCard" });
       commentCard.hidden = false;
-      await hydrateGPX(post);
+      K.enhanceGalleries(detail);
+      var byId = {};
+      byId[post.id] = decorated;
+      K.hydrateReplayCards(detail, { immediate: true, postsById: byId });
       return post;
     }
     async function refreshComments() {
@@ -143,52 +106,14 @@
       var authors = await K.profilesByIds(rows.map(function (r) { return r.user_id; }));
       commentList.innerHTML = rows.map(function (cm) {
         var a = authors.get(cm.user_id) || { id: cm.user_id, nama: "Pendaki JEJAKRUTE" };
-        return '<div class="comment"><a href="' + K.esc(K.profileLink(a)) + '">' + K.avatarHTML(a, "small", null) + '</a><div class="comment-main"><strong><a style="color:var(--txt);text-decoration:none" href="' + K.esc(K.profileLink(a)) + '">' + K.esc(K.displayName(a)) + '</a></strong> <span class="comment-meta">' + K.esc(K.usernameLabel(a)) + ' · ' + K.esc(K.relTime(cm.created_at)) + (cm.parent_id ? ' · membalas komentar' : '') + '</span><p>' + K.esc(cm.isi) + '</p>' +
-          (cm.user_id === me ? '<button class="text-btn" type="button" data-delete-comment="' + K.esc(cm.id) + '">Hapus komentar</button>' : '') + '</div></div>';
+        return '<div class="comment"><a href="' + K.esc(K.profileLink(a)) + '">' + K.avatarHTML(a, "small", ctx.session.user) + '</a><div class="comment-main"><strong><a style="color:var(--txt);text-decoration:none" href="' + K.esc(K.profileLink(a)) + '">' + K.esc(K.displayName(a)) + '</a></strong> <span class="comment-meta">' + K.esc(K.usernameLabel(a)) + " · " + K.esc(K.relTime(cm.created_at)) + (cm.parent_id ? " · membalas komentar" : "") + "</span><p>" + K.esc(cm.isi) + "</p>" +
+          (cm.user_id === me ? '<button class="text-btn" type="button" data-delete-comment="' + K.esc(cm.id) + '">Hapus komentar</button>' : "") + "</div></div>";
       }).join("");
     }
 
-    detail.addEventListener("click", async function (e) {
-      var btn = e.target.closest("[data-act]");
-      if (!btn) return;
-      var act = btn.getAttribute("data-act");
-      if (act === "share") {
-        try { await navigator.clipboard.writeText(location.href); K.toast("Tautan postingan disalin."); }
-        catch (_) { window.prompt("Salin tautan postingan:", location.href); }
-        return;
-      }
-      btn.disabled = true;
-      try {
-        if (act === "like") {
-          var r = btn.getAttribute("data-state") === "1"
-            ? await c.from("post_likes").delete().eq("post_id", postId).eq("user_id", me)
-            : await c.from("post_likes").insert({ post_id: postId, user_id: me });
-          if (r.error) throw r.error;
-          await refreshPost();
-        } else if (act === "save") {
-          var r2 = btn.getAttribute("data-state") === "1"
-            ? await c.from("post_saves").delete().eq("post_id", postId).eq("user_id", me)
-            : await c.from("post_saves").insert({ post_id: postId, user_id: me });
-          if (r2.error) throw r2.error;
-          await refreshPost();
-        } else if (act === "report") {
-          var alasan = window.prompt("Tulis alasan laporan untuk moderator:");
-          if (alasan && alasan.trim()) {
-            var rr = await c.from("reports").insert({ pelapor: me, post_id: postId, alasan: alasan.trim() });
-            if (rr.error) throw rr.error;
-            K.toast("Laporan terkirim ke server.");
-          }
-        } else if (act === "delete") {
-          if (window.confirm("Hapus postingan ini dari server? Tindakan ini juga berlaku di aplikasi.")) {
-            var rd = await c.from("posts").delete().eq("id", postId).eq("user_id", me);
-            if (rd.error) throw rd.error;
-            location.href = "feed.html";
-            return;
-          }
-        }
-      } catch (err) {
-        K.toast("Aksi gagal disimpan ke server: " + (err.message || err));
-      } finally { btn.disabled = false; }
+    K.bindPostActions(detail, {
+      refreshCard: async function () { await refreshPost(); },
+      onDeleted: function () { location.href = "feed.html"; }
     });
 
     commentList.addEventListener("click", async function (e) {
@@ -228,7 +153,7 @@
       await refreshPost();
       await refreshComments();
     } catch (err) {
-      detail.innerHTML = '<div class="empty error">Postingan gagal dimuat dari server: ' + K.esc(err.message || err) + '</div>';
+      detail.innerHTML = '<div class="empty error">Postingan gagal dimuat dari server: ' + K.esc(err.message || err) + "</div>";
     }
   }
   mulai();

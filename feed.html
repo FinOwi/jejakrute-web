@@ -27,7 +27,7 @@
     <div class="section-head" style="margin-bottom:0">
       <div>
         <h2>Buat Postingan</h2>
-        <p>Pilih Foto atau Replay. Rekaman dilakukan dari aplikasi.</p>
+        <p>Pilih Foto atau Replay dari berkasmu.</p>
       </div>
       <button class="btn" type="button" id="toggleComposer">Buat Postingan</button>
     </div>
@@ -98,44 +98,10 @@
   var feedList = document.getElementById("feedList");
   var currentTab = "untukmu";
 
-  function postMediaHTML(post) {
-    var items = K.mediaItems(post);
-    if (post.jenis === "foto" && items.length) {
-      var figs = items.map(function (path, i) {
-        return '<figure><img src="' + K.esc(K.mediaUrl(path)) + '" alt="Foto postingan ' + (i + 1) + '" loading="lazy"></figure>';
-      }).join("");
-      return '<div class="post-gallery">' + figs + '</div>' + (items.length > 1 ? '<div class="gallery-count">' + items.length + ' foto — geser untuk melihat</div>' : '');
-    }
-    if (post.jenis === "gpx") {
-      return '<div class="replay-card"><span class="pill verif">Replay GPX</span>' +
-        '<div class="replay-stats"><div><strong data-gpx-distance>…</strong><span>Jarak</span></div><div><strong data-gpx-gain>…</strong><span>Kenaikan</span></div><div><strong data-gpx-points>…</strong><span>Titik</span></div></div>' +
-        '<canvas class="spark" data-gpx-spark aria-label="Grafik elevasi Replay"></canvas>' +
-        '<p class="small muted" data-gpx-status style="margin-top:9px">Menghitung statistik dari GPX server…</p>' +
-        '<div class="form-actions" style="margin-top:12px"><a class="btn sm" href="replay.html?post=' + encodeURIComponent(post.id) + '">Putar Replay</a></div></div>';
-    }
-    if (post.jenis === "video" && items.length) {
-      return '<video class="post-video" controls preload="metadata" src="' + K.esc(K.mediaUrl(items[0])) + '"></video>';
-    }
-    return "";
-  }
-  function cardHTML(post) {
-    var a = post._author || {};
-    var authorLink = K.profileLink(a);
-    return '<article class="post-card" data-post-card="' + K.esc(post.id) + '">' +
-      '<div class="post-head"><a href="' + K.esc(authorLink) + '" aria-label="Buka profil">' + K.avatarHTML(a, "", null) + '</a>' +
-      '<div class="post-author"><a href="' + K.esc(authorLink) + '">' + K.esc(K.displayName(a)) + '</a>' +
-      '<div class="post-meta">' + K.esc(K.usernameLabel(a)) + (K.usernameLabel(a) ? ' · ' : '') + K.esc(K.relTime(post.created_at)) + '</div>' +
-      (post.lokasi_nama ? '<div class="post-location">' + K.esc(post.lokasi_nama) + '</div>' : '') + '</div>' +
-      (post.status_moderasi && post.status_moderasi !== "tampil" ? '<span class="pill belum">' + K.esc(post.status_moderasi) + '</span>' : '') + '</div>' +
-      postMediaHTML(post) +
-      (post.caption ? '<div class="post-body"><p class="post-caption">' + K.esc(post.caption) + '</p></div>' : '') +
-      '<div class="post-actions">' +
-      '<button class="action-btn' + (post._liked ? ' active' : '') + '" type="button" data-act="like" data-id="' + K.esc(post.id) + '" data-state="' + (post._liked ? '1' : '0') + '" aria-pressed="' + (post._liked ? 'true' : 'false') + '">' + K.icons.heart + '<span>' + K.fmtNum(post._likeCount) + '</span></button>' +
-      '<a class="action-btn" href="postingan.html?id=' + encodeURIComponent(post.id) + '">' + K.icons.comment + '<span>' + K.fmtNum(post._commentCount) + '</span></a>' +
-      '<button class="action-btn' + (post._saved ? ' active' : '') + '" type="button" data-act="save" data-id="' + K.esc(post.id) + '" data-state="' + (post._saved ? '1' : '0') + '" aria-pressed="' + (post._saved ? 'true' : 'false') + '">' + K.icons.bookmark + '<span>Simpan</span></button>' +
-      '<span class="action-spacer"></span>' +
-      '<button class="action-btn" type="button" data-act="share" data-id="' + K.esc(post.id) + '">' + K.icons.share + '<span>Bagikan</span></button>' +
-      '</div></article>';
+  var lastPostsById = {};
+  function decorate(container) {
+    K.enhanceGalleries(container);
+    K.hydrateReplayCards(container, { postsById: lastPostsById });
   }
 
   async function mulai() {
@@ -190,33 +156,18 @@
         });
       });
     }
-    async function hydrateGPX(post, card) {
-      if (post.jenis !== "gpx" || !card) return;
-      var items = K.mediaItems(post);
-      var status = card.querySelector("[data-gpx-status]");
-      if (!items.length) { if (status) status.textContent = "Postingan ini tidak memiliki berkas GPX di server."; return; }
-      try {
-        var a = await K.loadGPX(K.mediaUrl(items[0]));
-        var d = card.querySelector("[data-gpx-distance]"), g = card.querySelector("[data-gpx-gain]"), n = card.querySelector("[data-gpx-points]");
-        if (d) d.textContent = K.fmtKm(a.distanceKm);
-        if (g) g.textContent = K.fmtM(a.gainM);
-        if (n) n.textContent = K.fmtNum(a.points.length);
-        K.drawSpark(card.querySelector("[data-gpx-spark]"), a, 1);
-        if (status) status.textContent = "Statistik dihitung dari berkas GPX publik di server.";
-      } catch (err) {
-        if (status) status.textContent = "GPX belum dapat dihitung: " + (err.message || err);
-      }
-    }
     async function renderFeed() {
-      feedList.innerHTML = '<p class="loading">Memuat postingan dari server…</p>';
+      feedList.innerHTML = K.skeletonCards(2);
       try {
         var posts = await enrich(await fetchPosts());
         if (!posts.length) {
           feedList.innerHTML = '<div class="empty">' + (currentTab === "mengikuti" ? 'Belum ada postingan tampil dari akun yang kamu ikuti atau dari akunmu.' : 'Belum ada postingan tampil di server.') + '</div>';
           return;
         }
-        feedList.innerHTML = posts.map(cardHTML).join("");
-        posts.forEach(function (p) { hydrateGPX(p, feedList.querySelector('[data-post-card="' + CSS.escape(p.id) + '"]')); });
+        lastPostsById = {};
+        posts.forEach(function (p) { lastPostsById[p.id] = p; });
+        feedList.innerHTML = posts.map(function (p) { return K.postCardHTML(p); }).join("");
+        decorate(feedList);
       } catch (err) {
         feedList.innerHTML = '<div class="empty error">Feed gagal dimuat dari server: ' + K.esc(err.message || err) + '</div>';
       }
@@ -227,11 +178,12 @@
       var res = await c.from("posts").select("*").eq("id", postId).single();
       if (res.error) throw res.error;
       var fresh = (await enrich([res.data]))[0];
+      lastPostsById[postId] = fresh;
       var tmp = document.createElement("div");
-      tmp.innerHTML = cardHTML(fresh);
+      tmp.innerHTML = K.postCardHTML(fresh);
       var neu = tmp.firstElementChild;
       old.replaceWith(neu);
-      hydrateGPX(fresh, neu);
+      decorate(neu.parentElement || feedList);
     }
 
     document.querySelectorAll("[data-feed-tab]").forEach(function (btn) {
@@ -242,41 +194,9 @@
       });
     });
 
-    feedList.addEventListener("click", async function (e) {
-      var btn = e.target.closest("[data-act]");
-      if (!btn) return;
-      var id = btn.getAttribute("data-id"), act = btn.getAttribute("data-act");
-      if (act === "share") {
-        var url = new URL("postingan.html?id=" + encodeURIComponent(id), location.href).href;
-        try { await navigator.clipboard.writeText(url); K.toast("Tautan postingan disalin."); }
-        catch (_) { window.prompt("Salin tautan postingan:", url); }
-        return;
-      }
-      btn.disabled = true;
-      try {
-        if (act === "like") {
-          if (btn.getAttribute("data-state") === "1") {
-            var del = await c.from("post_likes").delete().eq("post_id", id).eq("user_id", me);
-            if (del.error) throw del.error;
-          } else {
-            var ins = await c.from("post_likes").insert({ post_id: id, user_id: me });
-            if (ins.error) throw ins.error;
-          }
-        }
-        if (act === "save") {
-          if (btn.getAttribute("data-state") === "1") {
-            var del2 = await c.from("post_saves").delete().eq("post_id", id).eq("user_id", me);
-            if (del2.error) throw del2.error;
-          } else {
-            var ins2 = await c.from("post_saves").insert({ post_id: id, user_id: me });
-            if (ins2.error) throw ins2.error;
-          }
-        }
-        await refreshCard(id);
-      } catch (err) {
-        K.toast("Perubahan gagal disimpan ke server: " + (err.message || err));
-        btn.disabled = false;
-      }
+    K.bindPostActions(feedList, {
+      refreshCard: refreshCard,
+      onDeleted: function () { renderFeed(); }
     });
 
     var fotoForm = document.getElementById("fotoForm");
@@ -293,6 +213,17 @@
       });
     });
     function setMsg(form, msg) { var el = form.querySelector("[data-form-msg]"); if (el) el.textContent = msg || ""; }
+    function ukuranFoto(file) {
+      return new Promise(function (resolve) {
+        try {
+          var url = URL.createObjectURL(file);
+          var img = new Image();
+          img.onload = function () { URL.revokeObjectURL(url); resolve({ w: img.naturalWidth, h: img.naturalHeight }); };
+          img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
+          img.src = url;
+        } catch (_) { resolve(null); }
+      });
+    }
     fotoForm.addEventListener("submit", async function (e) {
       e.preventDefault();
       var files = Array.prototype.slice.call(document.getElementById("fotoFiles").files || []);
@@ -302,19 +233,22 @@
       var btn = fotoForm.querySelector('button[type="submit"]');
       btn.disabled = true; setMsg(fotoForm, "Mengunggah foto ke server…");
       try {
-        var paths = [];
+        /* Simpan format aplikasi {p, w, h} agar bingkai galeri di web &
+           aplikasi mengikuti rasio foto yang sama. */
+        var mediaItems = [];
         for (var i = 0; i < files.length; i++) {
           var file = files[i];
           var ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
           var path = me + "/posting/" + Date.now() + "-" + i + "-" + Math.random().toString(36).slice(2, 9) + "." + ext;
           var up = await c.storage.from("media").upload(path, file, { contentType: file.type, upsert: false });
           if (up.error) throw up.error;
-          paths.push(path);
+          var dims = await ukuranFoto(file);
+          mediaItems.push(dims ? { p: path, w: dims.w, h: dims.h } : path);
         }
         var ins = await c.from("posts").insert({
           user_id: me, jenis: "foto", caption: document.getElementById("fotoCaption").value.trim() || null,
           lokasi_nama: document.getElementById("fotoLokasi").value.trim() || null,
-          media: paths, status_moderasi: "tampil"
+          media: mediaItems, status_moderasi: "tampil"
         });
         if (ins.error) throw ins.error;
         fotoForm.reset(); fotoForm.hidden = true; composerPanel.hidden = true; document.getElementById("toggleComposer").textContent = "Buat Postingan";
@@ -338,10 +272,20 @@
         var blob = new Blob([publik], { type: "application/gpx+xml" });
         var up = await c.storage.from("media").upload(path, blob, { contentType: "application/gpx+xml", upsert: false });
         if (up.error) throw up.error;
+        /* Simpan format aplikasi {gpx, judul, km, dur, naik}: statistik
+           cuplikan dihitung dari titik publik yang sudah diburamkan. */
+        var ana = K.analyzePoints(kept);
+        var durSec = 0;
+        if (kept.length > 1 && kept[0].time && kept[kept.length - 1].time) {
+          var dd = (new Date(kept[kept.length - 1].time).getTime() - new Date(kept[0].time).getTime()) / 1000;
+          if (isFinite(dd) && dd > 0) durSec = Math.round(dd);
+        }
+        var judulReplay = document.getElementById("gpxLokasi").value.trim() || document.getElementById("gpxCaption").value.trim().slice(0, 60) || "Jejak GPX";
         var ins = await c.from("posts").insert({
           user_id: me, jenis: "gpx", caption: document.getElementById("gpxCaption").value.trim() || null,
           lokasi_nama: document.getElementById("gpxLokasi").value.trim() || null,
-          media: [path], status_moderasi: "tampil"
+          media: [{ gpx: path, judul: judulReplay, km: Math.round(ana.distanceKm * 100) / 100, dur: durSec, naik: Math.round(ana.gainM) }],
+          status_moderasi: "tampil"
         });
         if (ins.error) throw ins.error;
         replayForm.reset(); replayForm.hidden = true; composerPanel.hidden = true; document.getElementById("toggleComposer").textContent = "Buat Postingan";
