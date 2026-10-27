@@ -268,7 +268,7 @@ a.map-row{text-decoration:none}
     <nav class="main-nav" aria-label="Navigasi utama">
       <a class="on" href="index.html">Beranda</a>
       <a href="katalog.html">Katalog</a>
-      <button type="button" data-login data-ctx="Mengunduh GPX perlu masuk dulu — satu akun, gratis. Peta rute komunitas sendiri bisa kamu lihat tanpa masuk; berkas GPX-nya yang tersimpan di balik gerbang anggota.">Rute</button>
+      <a href="rute-komunitas.html">Rute</a>
       <button type="button" data-login data-go="feed.html" data-ctx="Feed Komunitas hanya untuk anggota — masuk untuk melihatnya. Di dalamnya ada postingan pendaki, Replay rute, dan laporan kondisi terakhir dari jalur.">Komunitas</button>
     </nav>
     <a class="brand-c" href="index.html" aria-label="JEJAKRUTE — Beranda">
@@ -397,6 +397,23 @@ a.map-row{text-decoration:none}
     </div>
   </section>
 
+  <!-- ===== Live Share ===== -->
+  <section class="blk" aria-label="Live Share JEJAKRUTE">
+    <div class="life-grid">
+      <div>
+        <p class="kicker-script">keselamatan</p>
+        <h2 class="sec-title">Live Share — Keluarga Tahu Kamu di Mana</h2>
+        <p style="color:var(--mut);font-size:15.5px;line-height:1.65;max-width:56ch">Saat mulai mendaki, pendaki membagikan <strong style="color:var(--txt)">satu tautan</strong> dari aplikasi JEJAKRUTE. Keluarga yang menerima tautan itu bisa melihat <strong style="color:var(--txt)">posisi terakhir dan jejak perjalanannya</strong> langsung dari halaman ini — <strong style="color:var(--txt)">tanpa memasang aplikasi, tanpa masuk</strong>. Setiap pendakian punya token unik yang hanya bekerja untuk tautan itu, dan pendaki dapat mematikannya kapan pun.</p>
+      </div>
+      <aside class="dl-card" aria-label="Buka Live Share">
+        <h3>Punya Tautan Live Share?</h3>
+        <p class="dl-txt">Buka halaman pemantauan dan tempel token dari pendaki untuk melihat posisinya sekarang.</p>
+        <a class="btn-dl" href="live.html"><svg aria-hidden="true"><use href="#icon-pin"/></svg> Buka Live Share</a>
+        <p class="dl-note">tautan dari pendaki biasanya langsung membuka petanya — halaman ini juga menerima token manual.</p>
+      </aside>
+    </div>
+  </section>
+
   <!-- ===== Baris gerbang ramping ===== -->
   <section class="blk" aria-label="Gerbang feed komunitas">
     <div class="gate-strip">
@@ -435,6 +452,6 @@ a.map-row{text-decoration:none}
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="assets/auth.js?v=20261027-3"></script>
+<script src="assets/auth.js?v=20261027-4"></script>
 </body>
 </html>

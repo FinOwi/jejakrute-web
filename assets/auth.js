@@ -57,7 +57,7 @@
     ".jr-nm{font-weight:700;font-size:16.5px;color:#F4F5F3}",
     ".jr-un{color:#9AA0A3;font-size:13.5px}",
     ".jr-row{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}",
-    ".jr-btn{flex:1;min-width:130px;text-align:center;border-radius:999px;padding:12px 18px;font-family:'Oswald',sans-serif;font-weight:600;font-size:14.5px;letter-spacing:.03em;cursor:pointer;border:1px solid #17CE8F;background:#17CE8F;color:#052A1D}",
+    ".jr-links{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 2px}.jr-links a{display:block;text-align:center;padding:10px 8px;border:1px solid #33373C;border-radius:12px;color:#F4F5F3;text-decoration:none;font-size:13.5px;background:rgba(255,255,255,.03)}.jr-btn{flex:1;min-width:130px;text-align:center;border-radius:999px;padding:12px 18px;font-family:'Oswald',sans-serif;font-weight:600;font-size:14.5px;letter-spacing:.03em;cursor:pointer;border:1px solid #17CE8F;background:#17CE8F;color:#052A1D}",
     ".jr-btn.ghost{background:transparent;color:#17CE8F}",
     ".jr-btn.plain{background:#2B2E33;border-color:#33373C;color:#F4F5F3}",
     ".jr-f label{display:block;font-size:12.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9AA0A3;margin:14px 0 6px}",
@@ -125,6 +125,12 @@
       "<h3>Akun Saya</h3>" +
       '<div class="jr-who"><span class="jr-ava" data-jr-ava>?</span><span><span class="jr-nm" data-jr-nm></span><br><span class="jr-un" data-jr-un></span></span></div>' +
       '<p class="jr-sub" data-jr-innote style="margin-top:14px"></p>' +
+      '<nav class="jr-links" data-jr-links aria-label="Halaman anggota">' +
+      '<a href="profil.html">Profil Saya</a>' +
+      '<a href="feed.html">Feed Komunitas</a>' +
+      '<a href="jelajah.html">Jelajah</a>' +
+      '<a href="aman.html">Aman</a>' +
+      "</nav>" +
       '<div class="jr-row">' +
       '<button class="jr-btn" type="button" data-jr-lengkapi hidden>Lengkapi Profil</button>' +
       '<button class="jr-btn plain" type="button" data-jr-keluar>Keluar</button>' +
