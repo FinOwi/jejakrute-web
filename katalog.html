@@ -70,6 +70,11 @@
       ? '<span class="pill kurasi">Jalur Terkurasi</span>'
       : '<span class="pill dasar">Data Dasar</span>';
   }
+  function urlLok(l){
+    return (l.jenis==="gunung"||l.jenis==="bukit")
+      ? "gunung/"+l.id.replace(/^gunung-/,"")
+      : "lokasi/"+l.id;
+  }
   function render(){
     const q=document.getElementById("q").value.trim().toLowerCase();
     const j=sel.value;
@@ -81,7 +86,7 @@
     document.getElementById("count").textContent="Menampilkan "+hasil.length+" dari "+DATA.length+" lokasi";
     document.getElementById("kosong").style.display=hasil.length?"none":"block";
     document.getElementById("grid").innerHTML=hasil.map(l=>
-      '<a class="loc" href="lokasi.html?id='+encodeURIComponent(l.id)+'"><h3>'+esc(l.nama)+'</h3>'
+      '<a class="loc" href="'+urlLok(l)+'"><h3>'+esc(l.nama)+'</h3>'
       +'<p class="meta">'+esc(l.jenis)+' • '+esc(l.kabupaten_kota)+', '+esc(l.provinsi)+'</p>'
       +'<p class="atr">'+esc(l.daya_tarik)+'</p>'
       +'<div class="foot"><span class="h">'+(l.ketinggian_mdpl?Number(l.ketinggian_mdpl).toLocaleString("id-ID")+" mdpl":"—")+'</span>'+labelTingkat(l)+'</div></a>'
