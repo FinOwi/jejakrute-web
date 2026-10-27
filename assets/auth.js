@@ -36,7 +36,7 @@
 
   /* ---------- Modal (disuntikkan ke semua halaman) ---------- */
   var CSS = [
-    ".jr-ov{position:fixed;inset:0;z-index:300;background:rgba(9,11,12,.72);display:flex;align-items:center;justify-content:center;padding:18px}",
+    ".jr-ov [hidden]{display:none!important}.jr-ov{position:fixed;inset:0;z-index:300;background:rgba(9,11,12,.72);display:flex;align-items:center;justify-content:center;padding:18px}",
     ".jr-ov[hidden]{display:none}",
     ".jr-card{position:relative;background:#24272B;border:1px solid #33373C;border-radius:20px;box-shadow:0 24px 48px -24px rgba(0,0,0,.75);max-width:410px;width:100%;padding:30px 28px 24px;color:#F4F5F3;font-family:'Inter',system-ui,sans-serif;text-align:left}",
     ".jr-x{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;border:1px solid #33373C;background:#2B2E33;color:#F4F5F3;cursor:pointer;font-size:16px;line-height:1}",
@@ -382,7 +382,7 @@
         });
         wadah.hidden = false;
         var kustom = ov.querySelector("[data-jr-google]");
-        if (kustom) kustom.hidden = true;
+        if (kustom) { kustom.hidden = true; kustom.style.display = "none"; }
       } catch (_) { /* GIS gagal: tombol kustom (OAuth) tetap dipakai */ }
     });
   }
