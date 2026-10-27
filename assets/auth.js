@@ -358,9 +358,6 @@
     }
     client.auth.signInWithIdToken({ provider: "google", token: resp.credential })
       .then(function (res) {
-        if (!res.error) {
-          try { localStorage.setItem("jr_gis_ok", "1"); } catch (_) {}
-        }
         if (res.error) {
           setErr("[data-jr-err]", "Gagal masuk: " + res.error.message);
           return;
@@ -385,9 +382,7 @@
         });
         wadah.hidden = false;
         var kustom = ov.querySelector("[data-jr-google]");
-        var gisTerbukti = false;
-        try { gisTerbukti = localStorage.getItem("jr_gis_ok") === "1"; } catch (_) {}
-        if (kustom && gisTerbukti) kustom.hidden = true;
+        if (kustom) kustom.hidden = true;
       } catch (_) { /* GIS gagal: tombol kustom (OAuth) tetap dipakai */ }
     });
   }
