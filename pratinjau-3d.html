@@ -69,7 +69,28 @@
     background:#3a2323; border:1px solid #6e3535; color:#ffd9d4;
     border-radius:14px; padding:12px 14px; font-size:13px; line-height:1.5;
   }
-  @media (max-width:560px){ h1{font-size:19px} .kartu{padding:14px 15px 12px} }
+  .tombol-lipat{
+    position:absolute; top:10px; right:10px; width:30px; height:30px;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--card2); border:1px solid var(--line); border-radius:10px; cursor:pointer; padding:0;
+  }
+  .tombol-lipat svg{transition:transform .25s ease}
+  .kartu.lipat .isi{display:none}
+  .kartu.lipat .tombol-lipat svg{transform:rotate(180deg)}
+  .kartu.lipat h1{margin-bottom:0}
+  @media (max-width:560px){
+    .kartu{top:10px; left:10px; right:10px; padding:12px 13px 11px; border-radius:16px}
+    .lencana{font-size:9px; padding:2px 8px; margin-bottom:6px}
+    h1{font-size:17px; margin:0 0 8px}
+    .sub{display:none}
+    .stats{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-bottom:10px; padding-bottom:2px}
+    .stats::-webkit-scrollbar{display:none}
+    .chip{font-size:11px; padding:4px 9px}
+    .kontrol{gap:6px}
+    button.aksi{font-size:12px; padding:8px 11px; border-radius:11px}
+    .geser{font-size:11px; margin-top:0}
+    .petunjuk{font-size:11px; bottom:12px; padding:6px 11px}
+  }
 </style>
 </head>
 <body>
@@ -79,6 +100,10 @@
   <span class="lencana">PRATINJAU 3D — PROTOTIPE</span>
   <h1>Gunung Sibuatan</h1>
   <p class="sub">Rute Komunitas — kontribusi dari Wikiloc, sudah lolos moderasi. Terrain di bawah ini <b style="color:var(--txt)">3D asli</b> (data elevasi nyata), bukan gambar.</p>
+  <button class="tombol-lipat" id="btnLipat" aria-label="Lipat kartu" title="Lipat / buka kartu">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 14l7-7 7 7" stroke="#F4F5F3" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="isi">
   <div class="stats">
     <span class="chip">Jarak <b>6,81 km</b></span>
     <span class="chip">Naik <b>792 m</b></span>
@@ -93,6 +118,7 @@
       <input type="range" id="geserEx" min="1" max="2.2" step="0.1" value="1.4">
       <span id="nilaiEx">1.4×</span>
     </label>
+  </div>
   </div>
 </div>
 
@@ -252,6 +278,10 @@
     return new maplibregl.Marker({element: el, anchor: 'bottom', offset: [0, -6]})
       .setLngLat(lonlat).addTo(peta);
   }
+
+  document.getElementById('btnLipat').addEventListener('click', function(){
+    document.querySelector('.kartu').classList.toggle('lipat');
+  });
 
   // ---- Terbang: orbit sinematik mengikuti jalur menuju puncak ----
   // Kamera model standar (jumpTo) dengan pusat yang berjalan di sepanjang
