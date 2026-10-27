@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Pratinjau 3D — Gunung Sibuatan • JEJAKRUTE</title>
+<meta name="description" content="Prototipe pratinjau rute 3D JEJAKRUTE: terrain asli MapLibre GL dengan trek rute komunitas Gunung Sibuatan.">
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+  :root{
+    --bg:#17191C; --card:#24272B; --card2:#2B2E33; --line:#33373C;
+    --txt:#F4F5F3; --mut:#9AA0A3; --mint:#17CE8F; --amber:#FFB340; --sky:#38BDF8;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{height:100%; margin:0}
+  body{
+    font-family:"Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    color:var(--txt); overflow:hidden;
+    background:linear-gradient(180deg,#0b1526 0%,#12233c 46%,#17191C 100%);
+  }
+  #peta{position:fixed; inset:0}
+  .maplibregl-ctrl-attrib{background:rgba(23,25,28,.72); color:var(--mut); font-size:10px; border-radius:8px 0 0 0}
+  .maplibregl-ctrl-attrib a{color:var(--mut)}
+  .maplibregl-ctrl-group{background:var(--card); border:1px solid var(--line); box-shadow:none}
+  .maplibregl-ctrl-group button{background:transparent}
+  .maplibregl-ctrl-group button span{filter:invert(.9)}
+
+  .kartu{
+    position:fixed; top:14px; left:14px; right:14px; max-width:400px;
+    background:rgba(36,39,43,.92); backdrop-filter:blur(10px);
+    border:1px solid var(--line); border-radius:18px; padding:16px 18px 14px;
+    box-shadow:0 12px 32px rgba(0,0,0,.45); z-index:5;
+  }
+  .lencana{
+    display:inline-block; font-size:10px; font-weight:800; letter-spacing:.12em;
+    color:#0c221a; background:var(--mint); border-radius:999px; padding:3px 9px; margin-bottom:9px;
+  }
+  .lencana.abu{background:var(--card2); color:var(--amber); border:1px solid var(--line)}
+  h1{font-size:21px; margin:0 0 3px; letter-spacing:.01em}
+  .sub{color:var(--mut); font-size:12.5px; margin:0 0 12px; line-height:1.45}
+  .stats{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:13px}
+  .chip{
+    background:var(--card2); border:1px solid var(--line); border-radius:999px;
+    font-size:11.5px; padding:5px 10px; color:var(--txt); white-space:nowrap;
+  }
+  .chip b{color:var(--mint)}
+  .kontrol{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+  button.aksi{
+    appearance:none; border:1px solid var(--line); cursor:pointer;
+    background:var(--card2); color:var(--txt); font:inherit; font-size:13px; font-weight:700;
+    border-radius:12px; padding:9px 13px;
+  }
+  button.aksi.utama{background:var(--mint); border-color:var(--mint); color:#0c221a}
+  button.aksi.aktif{background:var(--sky); border-color:var(--sky); color:#08222f}
+  button.aksi:disabled{opacity:.55; cursor:wait}
+  .geser{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--mut); width:100%; margin-top:2px}
+  .geser input[type=range]{flex:1; accent-color:var(--mint)}
+  .petunjuk{position:fixed; left:50%; transform:translateX(-50%); bottom:16px; z-index:5;
+    background:rgba(36,39,43,.9); border:1px solid var(--line); color:var(--mut);
+    font-size:12px; border-radius:999px; padding:7px 14px; white-space:nowrap; max-width:94vw; overflow:hidden; text-overflow:ellipsis}
+  .penanda{
+    font-size:11px; font-weight:800; color:#0c221a; background:var(--mint);
+    border-radius:999px; padding:4px 9px; box-shadow:0 4px 14px rgba(0,0,0,.5); white-space:nowrap;
+  }
+  .penanda.puncak{background:var(--amber); color:#2a1a00}
+  .gagal{
+    position:fixed; inset:auto 14px 64px 14px; z-index:6; display:none;
+    background:#3a2323; border:1px solid #6e3535; color:#ffd9d4;
+    border-radius:14px; padding:12px 14px; font-size:13px; line-height:1.5;
+  }
+  @media (max-width:560px){ h1{font-size:19px} .kartu{padding:14px 15px 12px} }
+</style>
+</head>
+<body>
+<div id="peta"></div>
+
+<div class="kartu">
+  <span class="lencana">PRATINJAU 3D — PROTOTIPE</span>
+  <h1>Gunung Sibuatan</h1>
+  <p class="sub">Rute Komunitas — kontribusi dari Wikiloc, sudah lolos moderasi. Terrain di bawah ini <b style="color:var(--txt)">3D asli</b> (data elevasi nyata), bukan gambar.</p>
+  <div class="stats">
+    <span class="chip">Jarak <b>6,81 km</b></span>
+    <span class="chip">Naik <b>792 m</b></span>
+    <span class="chip">Puncak <b>2.441 m</b></span>
+    <span class="chip">Mulai <b>1.514 m</b></span>
+  </div>
+  <div class="kontrol">
+    <button class="aksi utama" id="btnTerbang" disabled>Memuat trek…</button>
+    <button class="aksi aktif" id="btnSatelit">Satelit</button>
+    <button class="aksi" id="btnRelief">Relief</button>
+    <label class="geser">Tinggi relief
+      <input type="range" id="geserEx" min="1" max="2.2" step="0.1" value="1.4">
+      <span id="nilaiEx">1.4×</span>
+    </label>
+  </div>
+</div>
+
+<div class="petunjuk" id="petunjuk">Seret untuk memutar &amp; mengintai • Cubit untuk zoom • Terrain bisa dimiringkan sampai tegak</div>
+<div class="gagal" id="gagal"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.js"></script>
+<script>
+(function(){
+  "use strict";
+  var GPX_URL = "https://qykzrcygsyeznzmsdohp.supabase.co/storage/v1/object/public/media/53788181-fe2a-4c62-a556-d0f31c0ce27c/kontribusi/kontribusi-gpx1792932309632.gpx";
+  var gagalEl = document.getElementById('gagal');
+  function gagal(pesan){
+    gagalEl.textContent = pesan;
+    gagalEl.style.display = 'block';
+  }
+
+  var peta;
+  try {
+    peta = new maplibregl.Map({
+      container: 'peta',
+      hash: false,
+      attributionControl: {compact: true},
+      style: {
+        version: 8,
+        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+        sources: {
+          dem: {
+            type: "raster-dem",
+            tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+            encoding: "terrarium",
+            tileSize: 256,
+            maxzoom: 15,
+            attribution: "Terrain: Mapzen/AWS Terrain Tiles"
+          },
+          sat: {
+            type: "raster",
+            tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+            tileSize: 256,
+            maxzoom: 18,
+            attribution: "Citra satelit: Esri World Imagery"
+          },
+          trek: {type: "geojson", data: {type:"FeatureCollection", features:[]}}
+        },
+        layers: [
+          {id:"bayang", type:"hillshade", source:"dem",
+           paint:{"hillshade-shadow-color":"#0a0f14", "hillshade-highlight-color":"#3d4a55",
+                  "hillshade-accent-color":"#22303c", "hillshade-exaggeration":0.42}},
+          {id:"satelit", type:"raster", source:"sat",
+           paint:{"raster-opacity":0.94, "raster-brightness-min":0.06, "raster-brightness-max":0.92,
+                  "raster-saturation":-0.12, "raster-contrast":0.08}},
+          {id:"trek-selubung", type:"line", source:"trek",
+           layout:{"line-cap":"round","line-join":"round"},
+           paint:{"line-color":"#06231a", "line-width":8, "line-opacity":0.65}},
+          {id:"trek-garis", type:"line", source:"trek",
+           layout:{"line-cap":"round","line-join":"round"},
+           paint:{"line-color":"#17CE8F", "line-width":3.6}}
+        ]
+      },
+      center: [98.4428, 2.9194],
+      zoom: 12.4,
+      pitch: 64,
+      bearing: -18,
+      maxPitch: 85
+    });
+  } catch(e) {
+    gagal("Peramban tidak bisa menjalankan WebGL, jadi peta 3D tidak dapat ditampilkan di perangkat ini.");
+    return;
+  }
+
+  peta.addControl(new maplibregl.NavigationControl({visualizePitch: true}), 'bottom-right');
+  peta.on('error', function(e){
+    if (e && e.error && /webgl/i.test(String(e.error.message || ''))) {
+      gagal("WebGL tidak tersedia di peramban ini, jadi terrain 3D tidak dapat ditampilkan.");
+    }
+  });
+
+  var exSaatIni = 1.4;
+  peta.on('load', function(){
+    peta.setTerrain({source: 'dem', exaggeration: exSaatIni});
+    muatTrek();
+  });
+
+  document.getElementById('geserEx').addEventListener('input', function(ev){
+    exSaatIni = parseFloat(ev.target.value);
+    document.getElementById('nilaiEx').textContent = exSaatIni.toFixed(1) + "×";
+    peta.setTerrain({source: 'dem', exaggeration: exSaatIni});
+  });
+
+  var btnSat = document.getElementById('btnSatelit');
+  var btnRel = document.getElementById('btnRelief');
+  function mode(m){
+    var sat = (m === 'satelit');
+    peta.setLayoutProperty('satelit', 'visibility', sat ? 'visible' : 'none');
+    peta.setPaintProperty('bayang', 'hillshade-exaggeration', sat ? 0.42 : 0.75);
+    btnSat.classList.toggle('aktif', sat);
+    btnRel.classList.toggle('aktif', !sat);
+  }
+  btnSat.addEventListener('click', function(){ mode('satelit'); });
+  btnRel.addEventListener('click', function(){ mode('relief'); });
+
+  // ---- Trek dari GPX rute komunitas ----
+  var titik = [];        // [lon, lat, ele]
+  var penandaMulai = null, penandaPuncak = null;
+
+  function muatTrek(){
+    fetch(GPX_URL).then(function(r){
+      if (!r.ok) throw new Error('gpx ' + r.status);
+      return r.text();
+    }).then(function(xml){
+      var doc = new DOMParser().parseFromString(xml, 'application/xml');
+      var pts = doc.querySelectorAll('trkpt');
+      var koord = [];
+      for (var i = 0; i < pts.length; i++){
+        var lat = parseFloat(pts[i].getAttribute('lat'));
+        var lon = parseFloat(pts[i].getAttribute('lon'));
+        var eleEl = pts[i].querySelector('ele');
+        var ele = eleEl ? parseFloat(eleEl.textContent) : 0;
+        titik.push([lon, lat, ele]);
+        koord.push([lon, lat]);
+      }
+      if (koord.length < 2) throw new Error('trek kosong');
+      peta.getSource('trek').setData({
+        type: "FeatureCollection",
+        features: [{type:"Feature", properties:{}, geometry:{type:"LineString", coordinates: koord}}]
+      });
+      var awal = koord[0], akhir = koord[koord.length - 1];
+      penandaMulai = buatPenanda(awal, 'Mulai 1.514 m', '');
+      penandaPuncak = buatPenanda(akhir, 'Puncak 2.441 m', 'puncak');
+      var btn = document.getElementById('btnTerbang');
+      btn.disabled = false;
+      btn.textContent = '▶ Terbang Menyusuri Rute';
+    }).catch(function(){
+      gagal('Trek rute gagal dimuat dari server. Terrain tetap bisa dijelajahi — coba segarkan halaman untuk memuat treknya.');
+      document.getElementById('btnTerbang').textContent = 'Trek tidak termuat';
+    });
+  }
+
+  function buatPenanda(lonlat, teks, kelas){
+    var el = document.createElement('div');
+    el.className = 'penanda ' + kelas;
+    el.textContent = teks;
+    return new maplibregl.Marker({element: el, anchor: 'bottom', offset: [0, -6]})
+      .setLngLat(lonlat).addTo(peta);
+  }
+
+  // ---- Terbang menyusuri rute ----
+  var terbang = false, rafId = null, tMulai = 0;
+  var DURASI = 30000; // 30 detik menyusuri 6,81 km
+  var btnTerbang = document.getElementById('btnTerbang');
+
+  function bantalanBearing(a, b){ // interpolasi sudut terpendek
+    var d = (b - a + 540) % 360 - 180;
+    return a + d;
+  }
+  function bearingDari(p, q){
+    var y = Math.sin((q[0]-p[0]) * Math.PI/180) * Math.cos(q[1] * Math.PI/180);
+    var x = Math.cos(p[1]*Math.PI/180) * Math.sin(q[1]*Math.PI/180) -
+            Math.sin(p[1]*Math.PI/180) * Math.cos(q[1]*Math.PI/180) * Math.cos((q[0]-p[0]) * Math.PI/180);
+    return (Math.atan2(y, x) * 180/Math.PI + 360) % 360;
+  }
+  function posisiDi(t){ // t: 0..1 di sepanjang titik (halus, berbasis indeks)
+    var f = t * (titik.length - 1);
+    var i = Math.min(Math.floor(f), titik.length - 2);
+    var sisa = f - i;
+    var a = titik[i], b = titik[i + 1];
+    return {
+      lon: a[0] + (b[0] - a[0]) * sisa,
+      lat: a[1] + (b[1] - a[1]) * sisa,
+      bearing: bearingDari(a, b)
+    };
+  }
+  function langkah(ts){
+    if (!terbang) return;
+    if (!tMulai) tMulai = ts;
+    var t = Math.min((ts - tMulai) / DURASI, 1);
+    var kini = posisiDi(t);
+    var depan = posisiDi(Math.min(t + 0.012, 1));
+    var brg = bantalanBearing(kini.bearing, depan.bearing);
+    peta.jumpTo({center: [kini.lon, kini.lat], bearing: brg, pitch: 72, zoom: 14.6});
+    if (t < 1) {
+      rafId = requestAnimationFrame(langkah);
+    } else {
+      berhentiTerbang();
+      peta.easeTo({pitch: 64, zoom: 12.6, duration: 2200});
+      document.getElementById('petunjuk').textContent = 'Selesai — seret untuk menjelajah bebas, atau terbang lagi dari tombol di atas.';
+    }
+  }
+  function mulaiTerbang(){
+    if (titik.length < 2) return;
+    terbang = true; tMulai = 0;
+    btnTerbang.textContent = '■ Berhenti Terbang';
+    document.getElementById('petunjuk').textContent = 'Sedang terbang menyusuri rute… sentuh peta untuk mengambil alih.';
+    var awal = titik[0];
+    peta.easeTo({center: [awal[0], awal[1]], zoom: 14.6, pitch: 72, bearing: bearingDari(titik[0], titik[6] || titik[1]), duration: 1600});
+    setTimeout(function(){ if (terbang) rafId = requestAnimationFrame(langkah); }, 1650);
+  }
+  function berhentiTerbang(){
+    terbang = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    btnTerbang.textContent = '▶ Terbang Menyusuri Rute';
+  }
+  btnTerbang.addEventListener('click', function(){
+    if (terbang) { berhentiTerbang(); } else { mulaiTerbang(); }
+  });
+  peta.on('mousedown', function(){ if (terbang) berhentiTerbang(); });
+  peta.on('touchstart', function(){ if (terbang) berhentiTerbang(); });
+  peta.on('wheel', function(){ if (terbang) berhentiTerbang(); });
+})();
+</script>
+</body>
+</html>
