@@ -5,7 +5,7 @@
 const SB_URL = "https://qykzrcygsyeznzmsdohp.supabase.co";
 // anon key publik-by-design (sama seperti yang tertanam di aplikasi Android)
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5a3pyY3lnc3llem56bXNkb2hwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NDM3MjAsImV4cCI6MjEwODQxOTcyMH0.T4y-jdD9OJK8LSNE26mydKXWDzCKoIeCy_BBvm57LlA";
-const APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.31.1/JEJAKRUTE-Pratinjau-v0.31.1-arm64.apk";
+const APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.32.1/JEJAKRUTE-Pratinjau-v0.32.1-arm64.apk";
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function fmtTgl(iso){if(!iso)return"—";const d=new Date(iso);return d.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})}
@@ -58,7 +58,8 @@ function kartuRute(r){
     +'<div class="nums"><span>'+fmtKm(r.jarak_km)+'</span><span>▲ '+Math.round(r.naik_m||0)+' m</span>'
     +((r.unduhan||r.pemakaian)?'<span style="color:var(--mut);font-weight:600">⬇ '+r.unduhan+' • dipakai '+r.pemakaian+'×</span>':'')
     +'</div><div class="foot"><span class="meta">Berkas GPX publik dari rekaman pendaki</span>'
-    +'<button class="btn sm" type="button" data-gpx="'+gpxUrl(r.gpx_path)+'">Unduh GPX</button></div></article>';
+    +'<span style="display:flex;gap:8px"><a class="btn sm ghost" href="pratinjau-3d.html?rute='+r.id+'">Lihat 3D</a>'
+    +'<button class="btn sm" type="button" data-gpx="'+gpxUrl(r.gpx_path)+'">Unduh GPX</button></span></div></article>';
 }
 
 /* Tandai menu aktif */
