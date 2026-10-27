@@ -116,6 +116,7 @@
       '<button class="jr-gbtn" type="button" data-jr-google>' +
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.58v2.97h3.87c2.26-2.09 3.57-5.16 3.57-8.74z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-2.97c-1.07.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.29v3.07A11.99 11.99 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.27 14.31A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.58.38-2.31V6.62H1.29a12 12 0 0 0 0 10.76l3.98-3.07z"/><path fill="#EA4335" d="M12 4.73c1.76 0 3.35.61 4.6 1.8l3.44-3.44A11.98 11.98 0 0 0 12 0 11.99 11.99 0 0 0 1.29 6.62l3.98 3.07C6.22 6.84 8.87 4.73 12 4.73z"/></svg>' +
       "Lanjutkan dengan Google</button>" +
+      '<div data-jr-gis hidden style="display:flex;justify-content:center;margin-top:4px"></div>' +
       '<p class="jr-err" data-jr-err></p>' +
       '<p class="jr-note"><strong>Baru di JEJAKRUTE?</strong> Login pertama otomatis mendaftarkanmu — setelah itu kamu tinggal melengkapi nama &amp; username. Satu akun untuk aplikasi &amp; website, <strong>gratis</strong>.</p>' +
       "</div>" +
@@ -152,7 +153,8 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !ov.hasAttribute("hidden")) closeModal();
     });
-    ov.querySelector("[data-jr-google]").addEventListener("click", loginGoogle);
+    ov.querySelector("[data-jr-google]").addEventListener("click", loginGoogleOAuth);
+    siapkanGIS(ov);
     ov.querySelector("[data-jr-keluar]").addEventListener("click", logout);
     ov.querySelector("[data-jr-lengkapi]").addEventListener("click", function () { showPane("form"); });
     ov.querySelector("[data-jr-form]").addEventListener("submit", simpanProfil);
@@ -331,8 +333,62 @@
     acc.querySelector("[data-jr-drawer-keluar]").addEventListener("click", function () { closeDrawer(); logout(); });
   }
 
+  /* ---------- Login Google via GIS (tanpa redirect supabase.co) ----------
+     Tombol resmi Google Identity Services dirender di domain kita sendiri;
+     token id dari Google ditukar langsung ke sesi Supabase
+     (signInWithIdToken — pola yang sama seperti aplikasi Android).
+     Bila GIS tak tersedia (script terblokir / origin belum diizinkan),
+     tombol kustom lama tetap ada sebagai cadangan jalur OAuth. */
+  var JR_GOOGLE_WEB_ID = "497702504202-nn8j21iu5bl5hht6s5vkclqhtadic4qe.apps.googleusercontent.com";
+  function muatGIS() {
+    return new Promise(function (resolve) {
+      if (window.google && google.accounts && google.accounts.id) return resolve(true);
+      var s = document.createElement("script");
+      s.src = "https://accounts.google.com/gsi/client";
+      s.async = true; s.defer = true;
+      s.onload = function () { resolve(!!(window.google && google.accounts && google.accounts.id)); };
+      s.onerror = function () { resolve(false); };
+      document.head.appendChild(s);
+    });
+  }
+  function terimaKredensialGoogle(resp) {
+    if (!resp || !resp.credential || !ensureClient()) return;
+    if (pendingGo) {
+      try { sessionStorage.setItem("jr_go_after_login", pendingGo); } catch (_) {}
+    }
+    client.auth.signInWithIdToken({ provider: "google", token: resp.credential })
+      .then(function (res) {
+        if (res.error) {
+          setErr("[data-jr-err]", "Gagal masuk: " + res.error.message);
+          return;
+        }
+        location.reload();
+      });
+  }
+  function siapkanGIS(ov) {
+    muatGIS().then(function (ok) {
+      if (!ok) return;
+      try {
+        google.accounts.id.initialize({
+          client_id: JR_GOOGLE_WEB_ID,
+          ux_mode: "popup",
+          callback: terimaKredensialGoogle
+        });
+        var wadah = ov.querySelector("[data-jr-gis]");
+        if (!wadah) return;
+        google.accounts.id.renderButton(wadah, {
+          theme: "outline", size: "large", type: "standard",
+          text: "continue_with", shape: "pill", width: 300, logo_alignment: "left"
+        });
+        wadah.hidden = false;
+        var kustom = ov.querySelector("[data-jr-google]");
+        if (kustom) kustom.hidden = true;
+      } catch (_) { /* GIS gagal: tombol kustom (OAuth) tetap dipakai */ }
+    });
+  }
+
   /* ---------- Aksi auth ---------- */
-  function loginGoogle() {
+  function loginGoogleOAuth() {
     if (!ensureClient()) {
       setErr("[data-jr-err]", "Layanan masuk belum termuat — periksa koneksimu lalu coba lagi.");
       return;
