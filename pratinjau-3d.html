@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Pratinjau 3D — Gunung Sibuatan • JEJAKRUTE</title>
-<meta name="description" content="Prototipe pratinjau rute 3D JEJAKRUTE: terrain asli MapLibre GL dengan trek rute komunitas Gunung Sibuatan.">
+<title>Pratinjau 3D Rute • JEJAKRUTE</title>
+<meta name="description" content="Pratinjau rute 3D JEJAKRUTE: terrain asli MapLibre GL dengan trek rute komunitas — terbang menyusuri jalur pendakian.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%2317CE8F'/%3E%3C/svg%3E">
 <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
 <style>
@@ -32,6 +32,8 @@
     border:1px solid var(--line); border-radius:18px; padding:16px 18px 14px;
     box-shadow:0 12px 32px rgba(0,0,0,.45); z-index:5;
   }
+  .kembali{display:inline-block; font-size:12px; color:var(--mut); text-decoration:none; margin:0 0 9px}
+  .kembali:hover{color:var(--txt)}
   .lencana{
     display:inline-block; font-size:10px; font-weight:800; letter-spacing:.12em;
     color:#0c221a; background:var(--mint); border-radius:999px; padding:3px 9px; margin-bottom:9px;
@@ -80,7 +82,9 @@
   .kartu.lipat h1{margin-bottom:0}
   @media (max-width:560px){
     .kartu{top:10px; left:10px; right:10px; padding:12px 13px 11px; border-radius:16px}
-    .lencana{font-size:9px; padding:2px 8px; margin-bottom:6px}
+    .kembali{display:inline-block; font-size:12px; color:var(--mut); text-decoration:none; margin:0 0 9px}
+  .kembali:hover{color:var(--txt)}
+  .lencana{font-size:9px; padding:2px 8px; margin-bottom:6px}
     h1{font-size:17px; margin:0 0 8px}
     .sub{display:none}
     .stats{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-bottom:10px; padding-bottom:2px}
@@ -97,19 +101,15 @@
 <div id="peta"></div>
 
 <div class="kartu">
-  <span class="lencana">PRATINJAU 3D — PROTOTIPE</span>
-  <h1>Gunung Sibuatan</h1>
-  <p class="sub">Rute Komunitas — kontribusi dari Wikiloc, sudah lolos moderasi. Terrain di bawah ini <b style="color:var(--txt)">3D asli</b> (data elevasi nyata), bukan gambar.</p>
+  <a class="kembali" href="rute-komunitas.html">&larr; Rute Komunitas</a><br>
+  <span class="lencana">PRATINJAU 3D</span>
+  <h1 id="judul">Memuat rute…</h1>
+  <p class="sub" id="subjudul">Terrain di bawah ini 3D asli (data elevasi nyata), bukan gambar.</p>
   <button class="tombol-lipat" id="btnLipat" aria-label="Lipat kartu" title="Lipat / buka kartu">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 14l7-7 7 7" stroke="#F4F5F3" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
   <div class="isi">
-  <div class="stats">
-    <span class="chip">Jarak <b>6,81 km</b></span>
-    <span class="chip">Naik <b>792 m</b></span>
-    <span class="chip">Puncak <b>2.441 m</b></span>
-    <span class="chip">Mulai <b>1.514 m</b></span>
-  </div>
+  <div class="stats" id="stats"></div>
   <div class="kontrol">
     <button class="aksi utama" id="btnTerbang" disabled>Memuat trek…</button>
     <button class="aksi aktif" id="btnSatelit">Satelit</button>
@@ -125,11 +125,11 @@
 <div class="petunjuk" id="petunjuk">Seret untuk memutar &amp; mengintai • Cubit untuk zoom • Terrain bisa dimiringkan sampai tegak</div>
 <div class="gagal" id="gagal"></div>
 
+<script src="assets/app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.js"></script>
 <script>
 (function(){
   "use strict";
-  var GPX_URL = "https://qykzrcygsyeznzmsdohp.supabase.co/storage/v1/object/public/media/53788181-fe2a-4c62-a556-d0f31c0ce27c/kontribusi/kontribusi-gpx1792932309632.gpx";
   var gagalEl = document.getElementById('gagal');
   function gagal(pesan){
     gagalEl.textContent = pesan;
@@ -207,7 +207,7 @@
   var exSaatIni = 1.4;
   peta.on('load', function(){
     peta.setTerrain({source: 'dem', exaggeration: exSaatIni});
-    muatTrek();
+    initRute();
   });
 
   document.getElementById('geserEx').addEventListener('input', function(ev){
@@ -228,18 +228,73 @@
   btnSat.addEventListener('click', function(){ mode('satelit'); });
   btnRel.addEventListener('click', function(){ mode('relief'); });
 
-  // ---- Trek dari GPX rute komunitas ----
+  // ---- Data rute dari server (parameter ?rute=<id>) ----
   var titik = [];        // [lon, lat, ele]
   var penandaMulai = null, penandaPuncak = null;
 
-  function muatTrek(){
-    fetch(GPX_URL).then(function(r){
+  function fmtM(v){ return Math.round(v).toLocaleString('id-ID') + ' m'; }
+
+  function initRute(){
+    var kolom = 'id,user_id,nama,lokasi_nama,gpx_path,jarak_km,naik_m,status';
+    var idDiminta = new URLSearchParams(location.search).get('rute');
+    var awal = idDiminta
+      ? sbGet('community_routes?select=' + kolom + '&id=eq.' + encodeURIComponent(idDiminta))
+          .then(function(r){ return r[0] || null; })
+      : Promise.resolve(null);
+    awal.then(function(r){
+      if (r) return r;
+      return sbGet('community_routes?select=' + kolom + '&status=eq.disetujui&order=created_at.desc&limit=1')
+        .then(function(x){ return x[0] || null; });
+    }).then(function(r){
+      if (r) return r;
+      return sbGet('community_routes?select=' + kolom + '&order=created_at.desc&limit=1')
+        .then(function(x){ return x[0] || null; });
+    }).then(function(r){
+      if (!r) {
+        gagal('Belum ada rute komunitas yang dapat ditampilkan dalam 3D.');
+        document.getElementById('judul').textContent = 'Pratinjau 3D';
+        return;
+      }
+      tampilkanRute(r);
+    }).catch(function(){
+      gagal('Data rute gagal dimuat dari server. Terrain tetap bisa dijelajahi — coba segarkan halaman.');
+    });
+  }
+
+  function tampilkanRute(r){
+    var judul = r.lokasi_nama || r.nama || 'Rute pendakian';
+    document.title = 'Pratinjau 3D — ' + judul + ' • JEJAKRUTE';
+    document.getElementById('judul').textContent = judul;
+    var statusTeks = r.status === 'disetujui' ? 'Rute Komunitas Terverifikasi' : 'Jejak Komunitas — Belum Terverifikasi';
+    var sub = statusTeks + ((r.nama && r.nama !== judul) ? ' • ' + r.nama : '');
+    document.getElementById('subjudul').textContent = sub;
+    document.getElementById('stats').innerHTML =
+      '<span class="chip">Jarak <b>' + fmtKm(r.jarak_km) + '</b></span>' +
+      '<span class="chip">Naik <b>' + fmtM(r.naik_m || 0) + '</b></span>' +
+      '<span class="chip">Puncak <b id="chipPuncak">…</b></span>' +
+      '<span class="chip">Mulai <b id="chipMulai">…</b></span>';
+    if (r.user_id) {
+      sbGet('profiles?select=nama,username&id=eq.' + r.user_id).then(function(p){
+        if (p && p[0]) {
+          var oleh = p[0].username ? '@' + p[0].username : (p[0].nama || '');
+          if (oleh) document.getElementById('subjudul').textContent = sub + ' • kontribusi ' + oleh;
+        }
+      }).catch(function(){});
+    }
+    var km = parseFloat(r.jarak_km) || 6.8;
+    DURASI = Math.max(22000, Math.min(45000, Math.round(km * 4700)));
+    muatTrek(gpxUrl(r.gpx_path));
+  }
+
+  function muatTrek(urlGpx){
+    fetch(urlGpx).then(function(r){
       if (!r.ok) throw new Error('gpx ' + r.status);
       return r.text();
     }).then(function(xml){
       var doc = new DOMParser().parseFromString(xml, 'application/xml');
       var pts = doc.querySelectorAll('trkpt');
       var koord = [];
+      titik = [];
       for (var i = 0; i < pts.length; i++){
         var lat = parseFloat(pts[i].getAttribute('lat'));
         var lon = parseFloat(pts[i].getAttribute('lon'));
@@ -253,9 +308,18 @@
         type: "FeatureCollection",
         features: [{type:"Feature", properties:{}, geometry:{type:"LineString", coordinates: koord}}]
       });
-      var awal = koord[0], akhir = koord[koord.length - 1];
-      penandaMulai = buatPenanda(awal, 'Mulai 1.514 m', '');
-      penandaPuncak = buatPenanda(akhir, 'Puncak 2.441 m', 'puncak');
+      var eleAwal = titik[0][2];
+      var idxMax = 0;
+      for (var j = 1; j < titik.length; j++){ if (titik[j][2] > titik[idxMax][2]) idxMax = j; }
+      var eleMax = titik[idxMax][2];
+      var elP = document.getElementById('chipPuncak');
+      var elM = document.getElementById('chipMulai');
+      if (elP) elP.textContent = eleMax > 0 ? fmtM(eleMax) : '—';
+      if (elM) elM.textContent = eleAwal > 0 ? fmtM(eleAwal) : '—';
+      penandaMulai = buatPenanda(koord[0], eleAwal > 0 ? 'Mulai ' + fmtM(eleAwal) : 'Mulai', '');
+      if (idxMax > 0) {
+        penandaPuncak = buatPenanda(koord[idxMax], eleMax > 0 ? 'Puncak ' + fmtM(eleMax) : 'Titik tertinggi', 'puncak');
+      }
       var bb = koord.reduce(function(b, c){
         return [[Math.min(b[0][0], c[0]), Math.min(b[0][1], c[1])],
                 [Math.max(b[1][0], c[0]), Math.max(b[1][1], c[1])]];
