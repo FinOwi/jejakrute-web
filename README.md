@@ -1,25 +1,12 @@
-# JEJAKRUTE — Website Pendamping
+# JEJAKRUTE — Website
 
-Situs statis pendamping aplikasi JEJAKRUTE (PRD v0.7 §17: *web untuk menemukan
-& membagikan, aplikasi untuk melakukan di lapangan*). GitHub Pages dari
-branch `main` (root).
+Situs resmi JEJAKRUTE, aplikasi GPS pendaki & wisata alam Indonesia:
+katalog 81 lokasi, rute komunitas, Live Share, dan unduh aplikasi.
 
-## Halaman
-- `index.html` — halaman muka + unduh aplikasi
-- `katalog.html` — Katalog Nasional 81 lokasi (data: `assets/katalog-data.js`,
-  dibangkitkan dari `data/katalog-nasional-v1.json` di repo aplikasi —
-  sumber kebenaran tunggal; jangan sunting manual)
-- `lokasi.html?id=<id>` — detail lokasi + Rute Komunitas lokasi itu
-- `rute-komunitas.html` — daftar Rute Komunitas (Supabase `community_routes`,
-  terbaca publik via RLS) + unduh GPX dari bucket publik `media`
-- `live.html` — penampil Live Share publik lewat RPC `get_live_share(token)`
-- `donasi.html` — halaman donasi
+🌐 https://jejakrute.my.id
 
-## Backend
-Supabase proyek JKR yang sama dengan aplikasi; web hanya memakai kunci
-anon (publik-by-design, dijaga RLS). service_role tidak pernah dipakai.
-Tidak ada skema DB yang diubah situs ini.
+Situs statis — halaman ditulis dalam HTML/CSS/JS polos.
+Kontribusi data lokasi dapat disiapkan dengan
+[Generator Halaman Lokasi](https://jejakrute.my.id/generator.html).
 
-## Lanjutan
-Domain kustom (mis. jejakrute.my.id) belum dipasang — perlu keputusan
-pemilik + pengaturan DNS.
+© FinOwi Id — Medan, Sumatera Utara.

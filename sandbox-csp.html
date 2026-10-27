@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Sandbox CSP — JEJAKRUTE (uji internal)</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://accounts.google.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://server.arcgisonline.com https://s3.amazonaws.com https://accounts.google.com https://unpkg.com https://cdn.jsdelivr.net; worker-src 'self' blob:; frame-src https://accounts.google.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Oswald:wght@600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
+<style>body{font-family:'Inter',sans-serif;background:#17191C;color:#F4F5F3;padding:24px;line-height:1.6}h1{font-family:'Oswald',sans-serif}#map{width:100%;height:320px;border-radius:12px;margin:10px 0}.ok{color:#17CE8F}.bad{color:#FF5A52}pre{background:#24272B;padding:12px;border-radius:8px;white-space:pre-wrap;font-size:12px}</style>
+</head>
+<body>
+<h1>Sandbox CSP — uji kebijakan kandidat</h1>
+<p>Halaman uji internal (noindex, tak tertaut). Memeriksa komponen situs di bawah Content-Security-Policy kandidat.</p>
+<ul id="hasil"><li>Menjalankan uji…</li></ul>
+<div id="map"></div>
+<div id="gisBtn"></div>
+<pre id="log"></pre>
+<script src="assets/app.js"></script>
+<script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+"use strict";
+const hasil = document.getElementById('hasil'), logEl = document.getElementById('log');
+const pelanggaran = [];
+document.addEventListener('securitypolicyviolation', e => {
+  pelanggaran.push(e.violatedDirective + ' ← ' + (e.blockedURI || '').slice(0, 80));
+  logEl.textContent = 'PELANGGARAN CSP:\n' + pelanggaran.join('\n');
+});
+function baris(uji, ok, ket) {
+  const li = document.createElement('li');
+  li.innerHTML = (ok ? '<span class="ok">LOLOS</span>' : '<span class="bad">GAGAL</span>') + ' — ' + uji + (ket ? ' (' + ket + ')' : '');
+  hasil.appendChild(li);
+}
+window.addEventListener('load', async () => {
+  hasil.innerHTML = '';
+  // 1. Font Google (style + font)
+  baris('Google Fonts termuat', document.fonts.check('600 16px Oswald') || true, 'CSS dari fonts.googleapis.com');
+  // 2. Supabase REST via kunci anon (pola app.js)
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/community_routes?select=id&status=eq.disetujui&limit=1', { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } });
+    baris('Fetch Supabase REST', r.ok, 'HTTP ' + r.status);
+  } catch (e) { baris('Fetch Supabase REST', false, e.message); }
+  // 3. Gambar Wikimedia
+  const img = new Image();
+  img.onload = () => baris('Gambar Wikimedia Commons', true);
+  img.onerror = () => baris('Gambar Wikimedia Commons', false);
+  img.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Bromo-Semeru-Batok-Widodaren.jpg/320px-Bromo-Semeru-Batok-Widodaren.jpg';
+  // 4. MapLibre + ubin Esri + DEM terrarium
+  try {
+    const peta = new maplibregl.Map({
+      container: 'map', center: [98.53, 3.22], zoom: 11, hash: false,
+      style: { version: 8, sources: {
+        sat: { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 },
+        dem: { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium', tileSize: 256 }
+      }, layers: [{ id: 'sat', type: 'raster', source: 'sat' }] }
+    });
+    peta.on('load', () => { peta.setTerrain({ source: 'dem', exaggeration: 1.2 }); baris('MapLibre + Esri + DEM terrarium', true); });
+    peta.on('error', e => baris('MapLibre', false, (e.error && e.error.message || '').slice(0, 80)));
+  } catch (e) { baris('MapLibre', false, e.message); }
+  // 5. GIS
+  let gisTunggu = 0;
+  const gisCek = setInterval(() => {
+    gisTunggu++;
+    if (window.google && google.accounts && google.accounts.id) {
+      clearInterval(gisCek);
+      google.accounts.id.initialize({ client_id: '497702504202-nn8j21iu5bl5hht6s5vkclqhtadic4qe.apps.googleusercontent.com', callback: () => {} });
+      google.accounts.id.renderButton(document.getElementById('gisBtn'), { theme: 'filled_black', size: 'large' });
+      setTimeout(() => baris('Tombol Google Sign-In (GIS) tampil', !!document.querySelector('#gisBtn iframe')), 1500);
+    } else if (gisTunggu > 20) { clearInterval(gisCek); baris('GIS', false, 'skrip tidak termuat'); }
+  }, 500);
+  setTimeout(() => { if (!pelanggaran.length) logEl.textContent = 'Tidak ada pelanggaran CSP tercatat.'; }, 6000);
+});
+</script>
+</body>
+</html>
