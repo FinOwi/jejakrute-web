@@ -171,6 +171,7 @@
   }
 
   peta.addControl(new maplibregl.NavigationControl({visualizePitch: true}), 'bottom-right');
+  window.__peta = peta;
   peta.on('error', function(e){
     if (e && e.error && /webgl/i.test(String(e.error.message || ''))) {
       gagal("WebGL tidak tersedia di peramban ini, jadi terrain 3D tidak dapat ditampilkan.");
@@ -252,68 +253,98 @@
       .setLngLat(lonlat).addTo(peta);
   }
 
-  // ---- Terbang menyusuri rute ----
+  // ---- Terbang: orbit sinematik mengikuti jalur menuju puncak ----
+  // Kamera model standar (jumpTo) dengan pusat yang berjalan di sepanjang
+  // trek dari titik awal ke puncak sambil berputar perlahan. Radius lebar
+  // + pitch sedang = kamera tidak pernah masuk ke dalam terrain.
   var terbang = false, rafId = null, tMulai = 0;
-  var DURASI = 30000; // 30 detik menyusuri 6,81 km
+  var DURASI = 32000; // 32 detik
   var btnTerbang = document.getElementById('btnTerbang');
+  var petunjukEl = document.getElementById('petunjuk');
+  var PETUNJUK_AWAL = 'Seret untuk memutar & mengintai \u2022 Cubit untuk zoom \u2022 Terrain bisa dimiringkan sampai tegak';
 
-  function bantalanBearing(a, b){ // interpolasi sudut terpendek
-    var d = (b - a + 540) % 360 - 180;
-    return a + d;
+  function jarakM(a, b){
+    var R = 6371000, dLat = (b[1]-a[1]) * Math.PI/180, dLon = (b[0]-a[0]) * Math.PI/180;
+    var s = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(a[1]*Math.PI/180) * Math.cos(b[1]*Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    return 2 * R * Math.asin(Math.sqrt(s));
   }
-  function bearingDari(p, q){
-    var y = Math.sin((q[0]-p[0]) * Math.PI/180) * Math.cos(q[1] * Math.PI/180);
-    var x = Math.cos(p[1]*Math.PI/180) * Math.sin(q[1]*Math.PI/180) -
-            Math.sin(p[1]*Math.PI/180) * Math.cos(q[1]*Math.PI/180) * Math.cos((q[0]-p[0]) * Math.PI/180);
-    return (Math.atan2(y, x) * 180/Math.PI + 360) % 360;
+  var sampel = [];
+  function bangunSampel(){
+    sampel = [];
+    if (titik.length < 2) return;
+    var target = 0, tempuh = 0;
+    sampel.push(titik[0]);
+    for (var i = 1; i < titik.length; i++){
+      tempuh += jarakM(titik[i-1], titik[i]);
+      if (tempuh >= target + 90){
+        sampel.push(titik[i]);
+        target = tempuh;
+      }
+    }
+    if (sampel[sampel.length - 1] !== titik[titik.length - 1]) sampel.push(titik[titik.length - 1]);
   }
-  function posisiDi(t){ // t: 0..1 di sepanjang titik (halus, berbasis indeks)
-    var f = t * (titik.length - 1);
-    var i = Math.min(Math.floor(f), titik.length - 2);
+  function posisiDi(t){
+    var f = t * (sampel.length - 1);
+    var i = Math.min(Math.floor(f), sampel.length - 2);
     var sisa = f - i;
-    var a = titik[i], b = titik[i + 1];
-    return {
-      lon: a[0] + (b[0] - a[0]) * sisa,
-      lat: a[1] + (b[1] - a[1]) * sisa,
-      bearing: bearingDari(a, b)
-    };
+    var a = sampel[i], b = sampel[i + 1];
+    return { lon: a[0] + (b[0] - a[0]) * sisa, lat: a[1] + (b[1] - a[1]) * sisa };
   }
   function langkah(ts){
     if (!terbang) return;
     if (!tMulai) tMulai = ts;
     var t = Math.min((ts - tMulai) / DURASI, 1);
-    var kini = posisiDi(t);
-    var depan = posisiDi(Math.min(t + 0.012, 1));
-    var brg = bantalanBearing(kini.bearing, depan.bearing);
-    peta.jumpTo({center: [kini.lon, kini.lat], bearing: brg, pitch: 72, zoom: 14.6});
+    var halus = t * t * (3 - 2 * t); // smoothstep
+    var tengah = posisiDi(halus);
+    peta.jumpTo({
+      center: [tengah.lon, tengah.lat],
+      bearing: -18 + 285 * halus,
+      pitch: 57 + 9 * halus,
+      zoom: 12.55 + 0.75 * halus
+    });
     if (t < 1) {
       rafId = requestAnimationFrame(langkah);
     } else {
-      berhentiTerbang();
-      peta.easeTo({pitch: 64, zoom: 12.6, duration: 2200});
-      document.getElementById('petunjuk').textContent = 'Selesai — seret untuk menjelajah bebas, atau terbang lagi dari tombol di atas.';
+      selesaiTerbang();
     }
+  }
+  function kembaliKeRingkasan(durasi){
+    var bb = titik.reduce(function(b, c){
+      return [[Math.min(b[0][0], c[0]), Math.min(b[0][1], c[1])],
+              [Math.max(b[1][0], c[0]), Math.max(b[1][1], c[1])]];
+    }, [[titik[0][0], titik[0][1]], [titik[0][0], titik[0][1]]]);
+    peta.fitBounds(bb, {padding: {top: 190, bottom: 70, left: 50, right: 50},
+                        pitch: 64, bearing: -18, duration: durasi || 1400, maxZoom: 13.6});
   }
   function mulaiTerbang(){
     if (titik.length < 2) return;
+    bangunSampel();
     terbang = true; tMulai = 0;
-    btnTerbang.textContent = '■ Berhenti Terbang';
-    document.getElementById('petunjuk').textContent = 'Sedang terbang menyusuri rute… sentuh peta untuk mengambil alih.';
-    var awal = titik[0];
-    peta.easeTo({center: [awal[0], awal[1]], zoom: 14.6, pitch: 72, bearing: bearingDari(titik[0], titik[6] || titik[1]), duration: 1600});
-    setTimeout(function(){ if (terbang) rafId = requestAnimationFrame(langkah); }, 1650);
+    btnTerbang.textContent = '\u25a0 Berhenti Terbang';
+    petunjukEl.textContent = 'Sedang terbang menyusuri rute\u2026 sentuh peta untuk mengambil alih.';
+    rafId = requestAnimationFrame(langkah);
   }
   function berhentiTerbang(){
+    if (!terbang) return;
     terbang = false;
     if (rafId) cancelAnimationFrame(rafId);
-    btnTerbang.textContent = '▶ Terbang Menyusuri Rute';
+    btnTerbang.textContent = '\u25b6 Terbang Menyusuri Rute';
+    petunjukEl.textContent = PETUNJUK_AWAL;
+    kembaliKeRingkasan(1200);
+  }
+  function selesaiTerbang(){
+    terbang = false;
+    btnTerbang.textContent = '\u25b6 Terbang Menyusuri Rute';
+    petunjukEl.textContent = 'Selesai \u2014 seret untuk menjelajah bebas, atau terbang lagi dari tombol di atas.';
+    kembaliKeRingkasan(2000);
   }
   btnTerbang.addEventListener('click', function(){
     if (terbang) { berhentiTerbang(); } else { mulaiTerbang(); }
   });
-  peta.on('mousedown', function(){ if (terbang) berhentiTerbang(); });
-  peta.on('touchstart', function(){ if (terbang) berhentiTerbang(); });
-  peta.on('wheel', function(){ if (terbang) berhentiTerbang(); });
+  peta.on('mousedown', function(){ berhentiTerbang(); });
+  peta.on('touchstart', function(){ berhentiTerbang(); });
+  peta.on('wheel', function(){ berhentiTerbang(); });
 })();
 </script>
 </body>
