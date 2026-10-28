@@ -49,6 +49,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
 <script src="assets/auth.js?v=20261027-4"></script>
+<script src="assets/badge-data.js"></script>
 <script src="assets/member.js"></script>
 <script>
 (function () {
@@ -156,14 +157,26 @@
     }
     function tabContentHTML(p, own) {
       if (activeTab === "lencana") {
+        var JRB = window.JR_BADGE;
+        var lv = JRB ? JRB.levelDari(currentBadges) : null;
+        var kartuLevel = "";
+        if (lv && lv.indeks >= 0) {
+          kartuLevel = '<div class="level-card"><img src="' + lv.img + '" alt="Segel ' + K.esc(lv.nama) + '"><div><h3 style="margin:0">Gelar: ' + K.esc(lv.nama) + '</h3><p>' + lv.berbeda + ' gunung berbeda · ' + lv.total + ' pendakian terverifikasi · tertinggi ' + K.fmtNum(lv.tertinggi) + ' mdpl</p></div></div>';
+        } else if (lv) {
+          kartuLevel = '<div class="level-card"><div><h3 style="margin:0">Belum ada gelar</h3><p>Gelar pertama (Newbie) terbuka setelah 2 pendakian terverifikasi.</p></div></div>';
+        }
         var gunung = currentBadges.length
-          ? '<div class="badge-list">' + currentBadges.map(function (b) {
-              return '<span class="badge-chip">' + K.esc(b.lokasi_nama || b.lokasi_id || "Lokasi") + (b.jumlah ? " · " + K.fmtNum(b.jumlah) + "×" : "") + "</span>";
+          ? '<div class="badge-art-grid">' + currentBadges.map(function (b) {
+              var nama = b.lokasi_nama || b.lokasi_id || "Lokasi";
+              var img = JRB ? JRB.imgGunungDariNama(nama) : null;
+              var g = JRB ? JRB.GUNUNG[JRB.slugTelanjang(nama)] : null;
+              return '<div class="badge-art">' + (img ? '<img loading="lazy" src="' + img + '" alt="Badge ' + K.esc(nama) + '">' : "") + "<b>" + K.esc(nama) + "</b><span>" + (g && g[1] ? K.fmtNum(g[1]) + " mdpl · " : "") + (b.jumlah ? K.fmtNum(b.jumlah) + "× terverifikasi" : "") + "</span></div>";
             }).join("") + "</div>"
           : '<div class="empty">Belum ada Lencana Gunung yang tercatat di server untuk profil ini.</div>';
         var terpasang = K.badgeLabels(p);
-        return '<div class="badge-sec"><h3>Lencana Gunung</h3>' + gunung +
-          (terpasang.length ? '<h3 style="margin-top:18px">Lencana Terpasang</h3><div class="badge-list">' + terpasang.map(function (b) { return '<span class="badge-chip">' + K.esc(b) + "</span>"; }).join("") + "</div>" : "") +
+        return '<div class="badge-sec">' + kartuLevel + '<h3>Lencana Gunung</h3>' + gunung +
+          (terpasang.length ? '<h3 style="margin-top:18px">Lencana Terpasang</h3><div class="badge-list">' + terpasang.map(function (b) { var im = JRB ? JRB.imgUntukLabel(b) : null; return '<span class="badge-chip">' + (im ? '<img class="bp-img" src="' + im + '" alt="">' : "") + K.esc(b) + "</span>"; }).join("") + "</div>" : "") +
+          '<p style="margin-top:16px"><a href="badge.html">Lihat Koleksi Badge lengkap — 75 badge →</a></p>' +
           "</div>";
       }
       if (!currentPosts.length) return '<div class="empty" style="margin-top:12px">Belum ada postingan tampil dari profil ini.</div>';
@@ -209,7 +222,7 @@
         '<div class="profile-cover">' + cover + "</div>" +
         '<section class="profile-card"><div class="profile-top">' + K.avatarHTML(p, "profile-avatar", ctx.session.user) +
         '<div class="profile-names"><h1>' + K.nameHTML(p) + '</h1><div class="uname">' + K.esc(K.usernameLabel(p)) + "</div></div></div>" +
-        (labels.length ? '<div class="profile-badges">' + labels.map(function (b) { return '<span class="badge-pill amber">' + K.esc(b) + "</span>"; }).join("") + "</div>" : "") +
+        (labels.length ? '<div class="profile-badges">' + labels.map(function (b) { var im = window.JR_BADGE ? window.JR_BADGE.imgUntukLabel(b) : null; return '<span class="badge-pill amber">' + (im ? '<img class="bp-img" src="' + im + '" alt="">' : "") + K.esc(b) + "</span>"; }).join("") + "</div>" : "") +
         (p.bio ? '<p class="profile-bio">' + K.esc(p.bio) + "</p>" : (own ? '<p class="profile-bio muted">Belum ada bio — tambahkan lewat Edit Profil.</p>' : "")) +
         (chips ? '<div class="social-row">' + chips + "</div>" : "") +
         '<div class="profile-stats">' +

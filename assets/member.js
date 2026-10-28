@@ -190,7 +190,9 @@
   }
   function badgePillHTML(profile) {
     var labels = badgeLabels(profile);
-    return labels.length ? '<span class="badge-pill">' + esc(labels[0]) + "</span>" : "";
+    if (!labels.length) return "";
+    var img = window.JR_BADGE ? window.JR_BADGE.imgUntukLabel(labels[0]) : null;
+    return '<span class="badge-pill">' + (img ? '<img class="bp-img" src="' + img + '" alt="">' : "") + esc(labels[0]) + "</span>";
   }
 
   async function profilesByIds(ids) {
