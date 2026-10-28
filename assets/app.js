@@ -5,7 +5,7 @@
 const SB_URL = "https://qykzrcygsyeznzmsdohp.supabase.co";
 // anon key publik-by-design (sama seperti yang tertanam di aplikasi Android)
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5a3pyY3lnc3llem56bXNkb2hwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NDM3MjAsImV4cCI6MjEwODQxOTcyMH0.T4y-jdD9OJK8LSNE26mydKXWDzCKoIeCy_BBvm57LlA";
-const APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.34.6/JEJAKRUTE-v0.34.6-universal.apk";
+const APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.34.7/JEJAKRUTE-v0.34.7-universal.apk";
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function fmtTgl(iso){if(!iso)return"—";const d=new Date(iso);return d.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})}
