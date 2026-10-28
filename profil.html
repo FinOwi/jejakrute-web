@@ -71,7 +71,7 @@
   var params = new URLSearchParams(location.search);
   var editSheet = document.getElementById("editSheet");
   var followSheet = document.getElementById("followSheet");
-  var currentProfile = null, currentBadges = [], currentPosts = [], activeTab = "postingan";
+  var currentProfile = null, currentBadges = [], currentKhusus = [], currentPosts = [], activeTab = "postingan";
 
   function socialUrl(value, platform) {
     if (!value) return "";
@@ -167,6 +167,15 @@
         list.innerHTML = '<div class="empty error">Daftar gagal dimuat: ' + K.esc(err.message || err) + "</div>";
       }
     }
+    function labelMetrikKhusus(kunci, jumlah) {
+      if (kunci === "khusus-anggota-awal") return "Pendaftar ke-" + jumlah;
+      if (kunci === "khusus-moderator") return "Peran aktif";
+      if (kunci.indexOf("khusus-kontributor") === 0) return jumlah + " rute diterbitkan";
+      if (kunci === "khusus-pelapor-kondisi" || kunci === "khusus-penjaga-jalur") return jumlah + " laporan diterima";
+      if (kunci.indexOf("khusus-penemu") === 0) return jumlah + " lokasi diterbitkan";
+      if (kunci === "khusus-perintis") return jumlah + " lokasi dirintis";
+      return "Dimiliki";
+    }
     function tabContentHTML(p, own) {
       if (activeTab === "lencana") {
         var JRB = window.JR_BADGE;
@@ -185,8 +194,16 @@
               return '<div class="badge-art">' + (img ? '<img loading="lazy" src="' + img + '" alt="Badge ' + K.esc(nama) + '">' : "") + "<b>" + K.esc(nama) + "</b><span>" + (g && g[1] ? K.fmtNum(g[1]) + " mdpl · " : "") + (b.jumlah ? K.fmtNum(b.jumlah) + "× terverifikasi" : "") + "</span></div>";
             }).join("") + "</div>"
           : '<div class="empty">Belum ada Lencana Gunung yang tercatat di server untuk profil ini.</div>';
+        var khusus = currentKhusus.length
+          ? '<div class="badge-art-grid">' + currentKhusus.map(function (b) {
+              var kunciBersih = (b.kunci || "").replace(/^khusus-/, "");
+              var img = JRB && JRB.KHUSUS[kunciBersih] ? "assets/badge/" + b.kunci + ".png" : null;
+              return '<div class="badge-art">' + (img ? '<img loading="lazy" src="' + img + '" alt="Badge ' + K.esc(b.nama || kunciBersih) + '">' : "") + "<b>" + K.esc(b.nama || kunciBersih) + "</b><span>" + K.esc(labelMetrikKhusus(b.kunci, b.jumlah || 0)) + "</span></div>";
+            }).join("") + "</div>"
+          : '<div class="empty">Belum ada Badge Kontribusi &amp; Khusus yang tercatat di server untuk profil ini.</div>';
         var terpasang = K.badgeLabels(p);
         return '<div class="badge-sec">' + kartuLevel + '<h3>Lencana Gunung</h3>' + gunung +
+          '<h3 style="margin-top:18px">Badge Kontribusi &amp; Khusus</h3>' + khusus +
           (terpasang.length ? '<h3 style="margin-top:18px">Lencana Terpasang</h3><div class="badge-list">' + terpasang.map(function (b) { var im = JRB ? JRB.imgUntukLabel(b) : null; return '<span class="badge-chip">' + (im ? '<img class="bp-img" src="' + im + '" alt="">' : "") + K.esc(b) + "</span>"; }).join("") + "</div>" : "") +
           '<p style="margin-top:16px"><a href="badge.html">Lihat Koleksi Badge lengkap — 75 badge →</a></p>' +
           "</div>";
@@ -207,6 +224,8 @@
       var badgesRes = await c.from("user_badges").select("*").eq("user_id", p.id).order("lokasi_nama", { ascending: true });
       if (badgesRes.error) throw badgesRes.error;
       currentBadges = badgesRes.data || [];
+      var khususRes = await c.from("user_badges_khusus").select("*").eq("user_id", p.id).order("kunci", { ascending: true });
+      currentKhusus = khususRes.error ? [] : (khususRes.data || []);
       var followState = null;
       if (!own) {
         var fr = await c.from("follows").select("pengikut,diikuti").eq("pengikut", me).eq("diikuti", p.id).maybeSingle();
