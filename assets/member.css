@@ -337,7 +337,7 @@ body[data-member-page="profil"] .member-main{max-width:760px}
 .badge-chip{display:inline-flex;align-items:center;gap:2px}
 .badge-art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
 .badge-art{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center}
-.badge-art img{width:100%;height:auto;display:block}
+.badge-art img{width:100%;max-width:150px;height:auto;display:block;margin:0 auto}
 .badge-art b{display:block;font-size:11px;margin-top:4px;color:var(--txt)}
 .badge-art span{font-size:10px;color:var(--mut)}
 .level-card{display:flex;gap:12px;align-items:center;background:var(--card2);border:1px solid rgba(23,206,143,.45);border-radius:14px;padding:12px;margin-bottom:16px}
