@@ -11,7 +11,7 @@
              string path .gpx polos juga valid (warisan web ronde 1). */
 (function () {
   "use strict";
-  var APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.34.1/JEJAKRUTE-v0.34.1-universal.apk";
+  var APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.34.2/JEJAKRUTE-v0.34.2-universal.apk";
   function ic(paths, filled) {
     return '<svg viewBox="0 0 24 24" fill="' + (filled ? "currentColor" : "none") + '" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
   }
