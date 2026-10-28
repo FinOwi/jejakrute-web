@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tinjau Usulan Lokasi — JEJAKRUTE</title>
+<meta name="description" content="Halaman moderator JEJAKRUTE untuk meninjau usulan lokasi baru dari komunitas.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#17191C; --bg-deep:#101315; --card:#24272B; --card2:#2B2E33; --line:#33373D; --txt:#EDEFEA; --mut:#9BA39C; --mint:#17CE8F; --amber:#FFB340; --red:#FF5A52; --sky:#38BDF8; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,sans-serif;font-size:14.5px;line-height:1.55}
+  .topbar{border-bottom:1px solid var(--line);background:var(--bg-deep)}
+  .topbar-in{max-width:1060px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;gap:14px}
+  .bs{font-family:'Oswald',sans-serif;font-weight:700;font-size:21px;letter-spacing:.12em}
+  .bsub{font-family:'Caveat',cursive;color:var(--mint);font-size:15px;margin-top:-4px}
+  .sp{flex:1}
+  a.btn,button.btn{display:inline-block;background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font:600 13px 'Inter',sans-serif;cursor:pointer;text-decoration:none}
+  button.btn.solid{background:var(--mint);color:#0B1B12;border-color:var(--mint)}
+  button.btn.danger{background:transparent;color:var(--red);border-color:var(--red)}
+  button.btn:disabled{opacity:.5;cursor:wait}
+  .wrap{max-width:1060px;margin:0 auto;padding:26px 18px 60px}
+  h1.title{font-family:'Oswald',sans-serif;font-size:27px;letter-spacing:.04em;margin:0 0 6px;text-transform:uppercase}
+  .sub{color:var(--mut);margin:0 0 20px;max-width:72ch}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:18px}
+  .panel h2{font-size:15px;letter-spacing:.07em;text-transform:uppercase;margin:0 0 12px;font-family:'Oswald',sans-serif;font-weight:600}
+  .panel h2 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--mint);margin-right:9px}
+  .u-card{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;background:var(--card2)}
+  .u-head{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+  .u-nama{font-weight:700;font-size:16px}
+  .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.04em;background:#33373D;color:var(--txt)}
+  .pill.menunggu{background:#3a2f16;color:var(--amber)}
+  .pill.disetujui{background:#12312a;color:var(--mint)}
+  .pill.ditolak{background:#3a1d1d;color:var(--red)}
+  .pill.terbit{background:#17324a;color:var(--sky)}
+  .u-meta{color:var(--mut);font-size:12.5px;margin-top:4px}
+  .u-daya{margin-top:6px}
+  .u-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+  .u-acts textarea{flex:1;min-width:200px;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:8px 10px;font:13px 'Inter',sans-serif;min-height:36px}
+  iframe.prev{width:100%;height:640px;border:1px solid var(--line);border-radius:12px;background:#101315;margin-top:12px}
+  .note{color:var(--mut);font-size:13px}
+  .ok{color:var(--mint);font-size:13.5px;min-height:18px;margin:10px 0}
+  .err{color:var(--red)}
+  img.u-foto{width:110px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+  .u-flex{display:flex;gap:14px}
+  .u-flex .grow{flex:1;min-width:0}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a href="/" style="text-decoration:none;color:inherit">
+      <div class="bs">JEJAKRUTE</div>
+      <div class="bsub">Cerita dari Jalur</div>
+    </a>
+    <div class="sp"></div>
+    <a class="btn" href="/generator.html">Generator</a>
+    <a class="btn" href="/katalog.html">Katalog</a>
+    <a class="btn" href="/feed.html">Komunitas</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <h1 class="title">Tinjau Usulan Lokasi</h1>
+  <p class="sub">Halaman khusus moderator. Usulan yang <strong>disetujui</strong> diterbitkan otomatis ke situs oleh pemantau bow (halaman + entri katalog + peta situs) — biasanya dalam beberapa menit. Periksa fakta & pratinjaunya sebelum menyetujui; isi usulan tidak bisa diubah, hanya disetujui atau ditolak.</p>
+  <div class="ok" id="msg"></div>
+
+  <div class="panel" id="gatePanel">
+    <h2><span class="dot"></span>Akses Moderator</h2>
+    <div id="gateBox"><p class="note">Memeriksa sesi masuk…</p></div>
+  </div>
+
+  <div class="panel" id="antrePanel" style="display:none">
+    <h2><span class="dot"></span>Menunggu Tinjauan</h2>
+    <div id="antreBox"><p class="note">Memuat antrean…</p></div>
+  </div>
+
+  <div class="panel" id="riwayatPanel" style="display:none">
+    <h2><span class="dot"></span>Riwayat Tinjauan</h2>
+    <div id="riwayatBox"><p class="note">Memuat riwayat…</p></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/auth.js?v=20261027-4"></script>
+<script src="assets/katalog-data.js"></script>
+<script src="assets/render-lokasi.js"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function msg(t, salah){ $("msg").innerHTML = salah ? "<span class='err'>" + esc(t) + "</span>" : esc(t); }
+const LABEL = { menunggu: "Menunggu tinjauan", disetujui: "Disetujui — menunggu terbit otomatis", ditolak: "Ditolak", terbit: "Sudah terbit" };
+let SB = null, SESS = null;
+
+function kartu(u, bisaTindak){
+  const r = (u.data && u.data.render) || {};
+  const pengirim = u.profiles ? ("@" + (u.profiles.username || "?")) : "";
+  const foto = r.foto && r.foto.url ? "<img class='u-foto' src='" + esc(r.foto.url) + "' alt=''>" : "";
+  const tgl = new Date(u.created_at).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
+  let h = "<div class='u-card' data-id='" + u.id + "'><div class='u-flex'>" + foto + "<div class='grow'>";
+  h += "<div class='u-head'><span class='u-nama'>" + esc(u.nama) + "</span><span class='pill'>" + esc(u.jenis) + "</span><span class='pill " + u.status + "'>" + LABEL[u.status] + "</span></div>";
+  h += "<div class='u-meta'>" + esc(r.prov || "") + " — " + esc(r.kab || "") + " · " + pengirim + " · " + tgl + "</div>";
+  if (r.daya) h += "<div class='u-daya'>" + esc(r.daya) + "</div>";
+  if (u.catatan_moderator) h += "<div class='u-meta'>Catatan moderator: " + esc(u.catatan_moderator) + "</div>";
+  if (u.url_terbit) h += "<div class='u-meta'>Terbit: <a href='" + esc(u.url_terbit) + "' style='color:var(--sky)'>" + esc(u.url_terbit) + "</a></div>";
+  if (bisaTindak){
+    h += "<div class='u-acts'><button class='btn' data-act='prev'>Pratinjau</button><textarea data-note placeholder='Catatan moderator (opsional — wajib bila menolak karena data meragukan)'></textarea><button class='btn solid' data-act='setuju'>Setujui & Terbitkan</button><button class='btn danger' data-act='tolak'>Tolak</button></div>";
+    h += "<div class='prevBox'></div>";
+  } else {
+    h += "<div class='u-acts'><button class='btn' data-act='prev'>Pratinjau</button></div><div class='prevBox'></div>";
+  }
+  h += "</div></div></div>";
+  return h;
+}
+
+async function muatDaftar(){
+  const { data, error } = await SB.from("usulan_lokasi")
+    .select("id, user_id, jenis, nama, data, status, catatan_moderator, url_terbit, created_at, profiles:user_id(username)")
+    .order("created_at", { ascending: false }).limit(60);
+  if (error){ msg("Gagal memuat usulan: " + error.message, true); return; }
+  const antre = data.filter(u => u.status === "menunggu");
+  const riwayat = data.filter(u => u.status !== "menunggu");
+  $("antreBox").innerHTML = antre.length ? antre.map(u => kartu(u, true)).join("") : "<p class='note'>Antrean kosong — belum ada usulan baru.</p>";
+  $("riwayatBox").innerHTML = riwayat.length ? riwayat.map(u => kartu(u, false)).join("") : "<p class='note'>Belum ada riwayat.</p>";
+  document.querySelectorAll(".u-card").forEach(card => {
+    const id = card.dataset.id;
+    const row = data.find(u => u.id === id);
+    card.querySelectorAll("button[data-act]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const act = btn.dataset.act;
+        if (act === "prev"){
+          const box = card.querySelector(".prevBox");
+          if (box.innerHTML){ box.innerHTML = ""; return; }
+          const ifr = document.createElement("iframe");
+          ifr.className = "prev";
+          ifr.srcdoc = window.renderLokasiPage((row.data && row.data.render) || {});
+          box.appendChild(ifr);
+          return;
+        }
+        const note = (card.querySelector("[data-note]") || {}).value || "";
+        const status = act === "setuju" ? "disetujui" : "ditolak";
+        btn.disabled = true;
+        const { error } = await SB.from("usulan_lokasi").update({
+          status, catatan_moderator: note.trim() || null,
+          ditinjau_oleh: SESS.user.id, ditinjau_at: new Date().toISOString()
+        }).eq("id", id);
+        if (error){ msg("Gagal: " + error.message, true); btn.disabled = false; return; }
+        msg(act === "setuju"
+          ? "Disetujui. Pemantau bow akan menerbitkannya otomatis dalam beberapa menit."
+          : "Usulan ditolak.");
+        muatDaftar();
+      });
+    });
+  });
+}
+
+(async function init(){
+  if (window.jrReady){ try { await window.jrReady; } catch(e){} }
+  SB = window.jr ? window.jr.client() : null;
+  SESS = window.jr ? window.jr.session() : null;
+  if (!SB || !SESS){
+    $("gateBox").innerHTML = "<p class='note'>Kamu belum masuk. Halaman ini hanya untuk moderator JEJAKRUTE.</p><button class='btn solid' id='btnMasuk'>Masuk dengan Google</button>";
+    $("btnMasuk").addEventListener("click", () => { if (window.jrOpenLogin) window.jrOpenLogin(""); });
+    return;
+  }
+  const { data: prof, error } = await SB.from("profiles").select("moderator, username").eq("id", SESS.user.id).single();
+  if (error || !prof || !prof.moderator){
+    $("gateBox").innerHTML = "<p class='note'>Akunmu bukan moderator — halaman ini tidak bisa kamu pakai. Usulan lokasimu sendiri bisa kamu pantau di halaman Generator.</p>";
+    return;
+  }
+  $("gateBox").innerHTML = "<p class='note'>Masuk sebagai moderator <strong>@" + esc(prof.username || "") + "</strong>. Antrean di bawah siap ditinjau.</p>";
+  $("antrePanel").style.display = "";
+  $("riwayatPanel").style.display = "";
+  muatDaftar();
+})();
+</script>
+</body>
+</html>
