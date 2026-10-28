@@ -210,11 +210,12 @@ def main():
         if p.returncode != 0:
             raise RuntimeError("push gagal: " + p.stderr[:300])
 
-    # verifikasi live
+    # verifikasi live — build GitHub Pages pernah butuh >4 menit (kejadian
+    # Danau Toba), jadi jendela tunggu dibuat longgar: 14 x 45 dtk (~10 mnt).
     url_live = "https://jejakrute.my.id/" + rel
     lolos = False
-    for _ in range(10):
-        time.sleep(25)
+    for _ in range(14):
+        time.sleep(45)
         try:
             req = urllib.request.Request(url_live, headers=UA)
             with urllib.request.urlopen(req, timeout=30) as r:
@@ -223,7 +224,7 @@ def main():
         except Exception:
             pass
     if not lolos:
-        raise RuntimeError("halaman belum live sesudah ±4 menit — status dibiarkan 'disetujui' untuk diperiksa.")
+        raise RuntimeError("halaman belum live sesudah ±10 menit — status dibiarkan 'disetujui' untuk diperiksa.")
     url_terbit = "https://jejakrute.my.id/" + rel
     tandai_terbit(uid, url_terbit)
     print(json.dumps({"hasil": "terbit", "nama": u["nama"], "url": url_terbit}, ensure_ascii=False))
