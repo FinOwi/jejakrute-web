@@ -4885,5 +4885,85 @@
    "https://boatique-charters.com/whale-sharks-triton-bay/"
   ],
   "catatan": "Konflik waktu tempuh speedboat dari Kota Kaimana: sumber menyebut sekitar 1 jam, 1–1,5 jam, 1,5 jam, dan 2–3 jam (kapal kayu), sehingga durasi tur tidak diisi dan jarak memakai angka 40 km dari satu sumber. Konflik musim: satu sumber menyebut Oktober–April, sumber lain Oktober–Mei dan menghindari Juni–September. Konflik jumlah ikan: Wikipedia Bahasa Indonesia menyebut 959 jenis ikan karang, sumber lain menyebut 937 jenis. Angka tarif nominal spesifik retribusi/tarif BLUD, kuota resmi, dan pengumuman buka-tutup resmi bertanggal tidak ditemukan. Foto: pencarian Wikimedia Commons tidak menghasilkan berkas foto asli Teluk Triton/Kaimana yang terverifikasi judul, kategori, dan deskripsinya dengan resolusi landscape ≥1600 px, dan halaman Wikipedia Bahasa Indonesia tidak memuat foto, sehingga foto diisi null."
+ },
+ {
+  "id": "danau-toba",
+  "foto": {
+   "kredit": "Visions of Domino",
+   "halaman": "https://commons.wikimedia.org/wiki/File:Indonesia_-_Lake_Toba_(26224127503).jpg",
+   "lisensi": "CC BY 2.0",
+   "url_file": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Indonesia_-_Lake_Toba_%2826224127503%29.jpg"
+  },
+  "tips": [
+   {
+    "isi": "Antrean feri Parapat–Tomok memanjang pada akhir pekan dan musim libur. Datanglah pagi hari, dan jangan merencanakan perjalanan pulang mepet sesudah feri terakhir.",
+    "judul": "Datang Lebih Awal untuk Feri"
+   },
+   {
+    "isi": "Banyak situs di Samosir adalah makam raja dan desa adat yang masih hidup (Tomok, Huta Siallagan). Berpakaian sopan, minta izin sebelum memotret warga dan benda adat, dan ikuti arahan pemandu setempat.",
+    "judul": "Hormati Adat Batak"
+   },
+   {
+    "isi": "Di luar Parapat dan Pangururan, pembayaran nontunai dan ATM terbatas. Bawa uang tunai secukupnya untuk feri, parkir, retribusi, dan warung makan.",
+    "judul": "Siapkan Uang Tunai"
+   }
+  ],
+  "jalur": [
+   {
+    "meta": "Penyeberangan kendaraan & penumpang dari Parapat (Kabupaten Simalungun) ke Tomok, Pulau Samosir",
+    "nama": "Feri Parapat → Tomok",
+    "kesulitan": ""
+   },
+   {
+    "meta": "Mengelilingi pulau melewati Pangururan, Simanindo, dan desa-desa wisata Batak",
+    "nama": "Jalan Lingkar Pulau Samosir",
+    "kesulitan": ""
+   },
+   {
+    "meta": "Titik pandang kaldera dari menara di perbukitan Tele, sisi barat Samosir",
+    "nama": "Menara Pandang Tele",
+    "kesulitan": ""
+   }
+  ],
+  "jarak": "±176 km dari Kota Medan (±4–5 jam berkendara)",
+  "kolam": null,
+  "kuota": null,
+  "durasi": "2–3 hari untuk Parapat + Pulau Samosir",
+  "sumber": [
+   "https://www.indonesia.travel/id/id/destination/sumatra/north-sumatra/lake-toba",
+   "https://sumutprov.go.id/artikel/artikel/geopark-kaldera-toba"
+  ],
+  "catatan": "",
+  "simaksi": "Tidak ada tiket masuk kawasan danau. Biaya berlaku per aktivitas: tarif feri Parapat–Tomok, parkir, dan retribusi objek wisata setempat (museum, desa wisata) sesuai ketentuan pengelola masing-masing.",
+  "_katalog": {
+   "kab": "Parapat, Kabupaten Simalungun",
+   "lat": 2.68,
+   "lng": 98.88,
+   "daya": "Danau kaldera vulkanik terbesar di dunia — lahir dari letusan supervulkan ±74.000 tahun lalu, dengan Pulau Samosir di tengahnya; kawasan UNESCO Global Geopark dan jantung budaya Batak.",
+   "nama": "Danau Toba",
+   "prov": "Sumatera Utara",
+   "jenis": "danau",
+   "sumber": "Wikipedia Bahasa Indonesia – Danau Toba; Geopark Kaldera Toba, Pemprov Sumatera Utara; indonesia.travel — diakses Oktober 2026",
+   "tinggi": 905,
+   "wilayah": "Sumatra"
+  },
+  "basecamp": null,
+  "tinggi_m": null,
+  "aktivitas": [
+   "Naik feri ke Pulau Samosir",
+   "Wisata budaya Batak (Tomok, Simanindo, Huta Siallagan)",
+   "Berenang & berperahu",
+   "Memancing",
+   "Berkemah di tepi danau",
+   "Menara pandang & titik panorama kaldera"
+  ],
+  "deskripsi": "Danau Toba adalah danau terbesar di Indonesia dan danau kaldera vulkanik terbesar di dunia: panjang ±100 km, lebar ±30 km, luas permukaan ±1.130 km², dan kedalaman maksimum ±505 m, pada ketinggian permukaan ±905 mdpl. Kalderanya terbentuk oleh letusan supervulkan Toba sekitar 74.000 tahun lalu; pengangkatan dasar kaldera sesudahnya membentuk Pulau Samosir di tengah danau. Kawasan ini diakui sebagai UNESCO Global Geopark (Geopark Kaldera Toba) dan merupakan jantung budaya Batak.",
+  "elevasi_m": 905,
+  "fasilitas": [],
+  "kesulitan": null,
+  "nama_resmi": "Danau Toba",
+  "titik_awal": "Parapat, Kabupaten Simalungun — pelabuhan feri menuju Tomok di Pulau Samosir; basis lain: Pangururan, ibu kota Kabupaten Samosir",
+  "musim_terbaik": "Kemarau, sekitar Mei–September",
+  "status_keamanan": null
  }
 ]
