@@ -1213,5 +1213,20 @@
   "lat": -3.833,
   "lng": 134.083,
   "perkiraan": true
+ },
+ {
+  "nama": "Danau Toba",
+  "jenis": "danau",
+  "ketinggian_mdpl": 905,
+  "kabupaten_kota": "Parapat, Kabupaten Simalungun",
+  "provinsi": "Sumatera Utara",
+  "lat": 2.68,
+  "lng": 98.88,
+  "perkiraan": false,
+  "daya_tarik": "Danau kaldera vulkanik terbesar di dunia — lahir dari letusan supervulkan ±74.000 tahun lalu, dengan Pulau Samosir di tengahnya; kawasan UNESCO Global Geopark dan jantung budaya Batak.",
+  "sumber": "Wikipedia Bahasa Indonesia – Danau Toba; Geopark Kaldera Toba, Pemprov Sumatera Utara; indonesia.travel — diakses Oktober 2026",
+  "wilayah": "Sumatra",
+  "tingkat_data": "usulan-komunitas",
+  "id": "danau-toba"
  }
 ]
