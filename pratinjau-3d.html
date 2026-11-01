@@ -126,6 +126,52 @@
 <div class="gagal" id="gagal"></div>
 
 <script src="assets/app.js"></script>
+<script>
+  // Pelapor tahap pemuatan peta 3D: pustaka peta besar (1,1 MB) + worker
+  // + ubin dimuat dari jaringan; bila satu tahap macet (jaringan lambat,
+  // modul gagal, worker tertahan), pengguna berhak tahu tahapnya — bukan
+  // "Memuat rute…" selamanya. Spanduk diagnostik hanya muncul bila 25
+  // detik berlalu tanpa peta termuat, dan hilang sendiri begitu termuat.
+  window.__tahapPeta = 'menunggu modul peta (1,1 MB)';
+  window.__logPeta = [];
+  window.__tahap = function(s){ window.__tahapPeta = s; };
+  window.__catatPeta = function(s){
+    if (window.__logPeta.length < 4) window.__logPeta.push(s);
+  };
+  document.addEventListener('securitypolicyviolation', function(e){
+    window.__catatPeta('CSP ' + e.violatedDirective + ' memblokir ' + (e.blockedURI || 'inline'));
+  });
+  window.addEventListener('error', function(e){
+    if (e && e.target && e.target.tagName === 'SCRIPT') {
+      window.__catatPeta('Skrip gagal dimuat: ' + (e.target.src || 'inline'));
+    } else if (e && e.message) {
+      window.__catatPeta('Error: ' + e.message);
+    }
+  }, true);
+  window.__diagMulai = Date.now();
+  window.__diagTimer = setInterval(function(){
+    var el = document.getElementById('gagal');
+    if (!el) return;
+    if (window.__tahapPeta === 'termemuat penuh') {
+      if (el.getAttribute('data-diag') === '1') {
+        el.style.display = 'none';
+        el.removeAttribute('data-diag');
+      }
+      clearInterval(window.__diagTimer);
+      return;
+    }
+    var berlalu = Math.round((Date.now() - window.__diagMulai) / 1000);
+    if (berlalu < 25) return;
+    if (el.style.display === 'block' && el.getAttribute('data-diag') !== '1') return;
+    var teks = 'Peta belum termuat setelah ' + berlalu + ' dtk. Tahap terakhir: ' +
+      window.__tahapPeta + '.';
+    if (window.__logPeta.length) teks += ' Catatan: ' + window.__logPeta.join(' | ');
+    teks += ' Tangkapan layar pesan ini menunjukkan tahap yang macet.';
+    el.textContent = teks;
+    el.style.display = 'block';
+    el.setAttribute('data-diag', '1');
+  }, 5000);
+</script>
 <script type="module">
   // MapLibre v6 tidak lagi menyediakan build UMD (maplibre-gl.js) —
   // hanya modul ES (.mjs). Impor di sini lalu paparkan sebagai global
@@ -138,6 +184,7 @@
   // worker-src situs (build UMD v5 dulu memakai worker blob, jadi aman).
   // Berkas worker 6.15.0 yang identik disimpan lokal di assets/.
   maplibregl.setWorkerUrl('assets/maplibre-gl-worker.mjs');
+  window.__tahap('modul termuat — membuat peta');
 (function(){
   "use strict";
   var gagalEl = document.getElementById('gagal');
@@ -208,7 +255,9 @@
 
   peta.addControl(new maplibregl.NavigationControl({visualizePitch: true}), 'bottom-right');
   window.__peta = peta;
+  window.__tahap('peta dibuat — menunggu gaya & ubin');
   peta.on('error', function(e){
+    if (e && e.error) window.__catatPeta('MapLibre: ' + (e.error.message || String(e.error)));
     if (e && e.error && /webgl/i.test(String(e.error.message || ''))) {
       gagal("WebGL tidak tersedia di peramban ini, jadi terrain 3D tidak dapat ditampilkan.");
     }
@@ -216,6 +265,7 @@
 
   var exSaatIni = 1.4;
   peta.on('load', function(){
+    window.__tahap('termemuat penuh');
     peta.setTerrain({source: 'dem', exaggeration: exSaatIni});
     initRute();
   });
