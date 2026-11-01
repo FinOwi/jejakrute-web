@@ -133,6 +133,11 @@
   // Patch keamanan CVE-2026-85061 (v5.24.0 rentan, tetap di 6.15.0).
   import maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.15.0/dist/maplibre-gl.mjs';
   window.maplibregl = maplibregl;
+  // Worker MapLibre HARUS sesama origin: build ESM v6 menurunkan URL
+  // worker dari URL modul CDN — lintas origin, ditolak peramban & CSP
+  // worker-src situs (build UMD v5 dulu memakai worker blob, jadi aman).
+  // Berkas worker 6.15.0 yang identik disimpan lokal di assets/.
+  maplibregl.setWorkerUrl('assets/maplibre-gl-worker.mjs');
 (function(){
   "use strict";
   var gagalEl = document.getElementById('gagal');
