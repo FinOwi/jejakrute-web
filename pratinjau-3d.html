@@ -177,7 +177,11 @@
   // hanya modul ES (.mjs). Impor di sini lalu paparkan sebagai global
   // window.maplibregl, supaya isi halaman di bawah tidak berubah.
   // Patch keamanan CVE-2026-85061 (v5.24.0 rentan, tetap di 6.15.0).
-  import maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.15.0/dist/maplibre-gl.mjs';
+  // Bundle ESM MapLibre v6 HANYA punya ekspor bernama (named exports),
+// TIDAK ada ekspor default — wajib namespace import seperti ini.
+// (Impor default = SyntaxError saat penautan modul; modul mati sebelum
+// satu baris pun jalan — akar regresi pratinjau 3D 1 Nov 2026.)
+import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.15.0/dist/maplibre-gl.mjs';
   window.maplibregl = maplibregl;
   // Worker MapLibre HARUS sesama origin: build ESM v6 menurunkan URL
   // worker dari URL modul CDN — lintas origin, ditolak peramban & CSP
