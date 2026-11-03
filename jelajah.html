@@ -121,7 +121,7 @@
       else openGroupsEl.innerHTML = '<div class="trip-grid">' + groups.map(function (g) {
         var mine = memberships.filter(function (m) { return m.group_id === g.id && m.user_id === me; })[0];
         var approved = memberships.filter(function (m) { return m.group_id === g.id && m.status === "disetujui"; }).length;
-        var creator = creators.get(g.user_id) || { nama: "Pendaki JEJAKRUTE" };
+        var creator = creators.get(g.user_id) || { nama: "Pendaki" };
         var action;
         if (g.user_id === me) action = '<button class="btn plain sm" type="button" disabled>Grup Saya</button>';
         else if (mine && mine.status === "disetujui") action = '<button class="btn plain sm" type="button" disabled>Sudah Bergabung</button>';

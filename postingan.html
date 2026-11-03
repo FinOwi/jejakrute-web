@@ -75,7 +75,7 @@
       if (results[2].error) throw results[2].error;
       if (results[3].error) throw results[3].error;
       return {
-        author: results[0].get(post.user_id) || { id: post.user_id, nama: "Pendaki JEJAKRUTE" },
+        author: results[0].get(post.user_id) || { id: post.user_id, nama: "Pendaki" },
         likeCount: (results[1].data || []).length,
         liked: (results[1].data || []).some(function (r) { return r.user_id === me; }),
         saved: (results[2].data || []).length > 0,
@@ -105,7 +105,7 @@
       if (!rows.length) { commentList.innerHTML = '<div class="empty">Belum ada komentar. Mulai percakapan jalur ini.</div>'; return; }
       var authors = await K.profilesByIds(rows.map(function (r) { return r.user_id; }));
       commentList.innerHTML = rows.map(function (cm) {
-        var a = authors.get(cm.user_id) || { id: cm.user_id, nama: "Pendaki JEJAKRUTE" };
+        var a = authors.get(cm.user_id) || { id: cm.user_id, nama: "Pendaki" };
         return '<div class="comment"><a href="' + K.esc(K.profileLink(a)) + '">' + K.avatarHTML(a, "small", ctx.session.user) + '</a><div class="comment-main"><strong><a style="color:var(--txt);text-decoration:none" href="' + K.esc(K.profileLink(a)) + '">' + K.esc(K.displayName(a)) + '</a></strong> <span class="comment-meta">' + K.esc(K.usernameLabel(a)) + " · " + K.esc(K.relTime(cm.created_at)) + (cm.parent_id ? " · membalas komentar" : "") + "</span><p>" + K.esc(cm.isi) + "</p>" +
           (cm.user_id === me ? '<button class="text-btn" type="button" data-delete-comment="' + K.esc(cm.id) + '">Hapus komentar</button>' : "") + "</div></div>";
       }).join("");

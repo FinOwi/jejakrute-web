@@ -170,7 +170,7 @@
         if (!ids.length) { list.innerHTML = '<div class="empty">Belum ada data di server.</div>'; return; }
         var people = await K.profilesByIds(ids);
         list.innerHTML = ids.map(function (id) {
-          var p = people.get(id) || { id: id, nama: "Pendaki JEJAKRUTE" };
+          var p = people.get(id) || { id: id, nama: "Pendaki" };
           return '<a class="follow-row" href="' + K.esc(K.profileLink(p)) + '">' + K.avatarHTML(p, "small", ctx.session.user) +
             '<span class="grow"><span class="fname">' + K.nameHTML(p) + '</span><br><span class="funame">' + K.esc(K.usernameLabel(p)) + "</span></span></a>";
         }).join("");

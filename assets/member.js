@@ -11,7 +11,7 @@
              string path .gpx polos juga valid (warisan web ronde 1). */
 (function () {
   "use strict";
-  var APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.34.18/JEJAKRUTE-v0.34.18-universal.apk";
+  var APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.35.4/JEJAKRUTE-v0.35.4-universal.apk";
   function ic(paths, filled) {
     return '<svg viewBox="0 0 24 24" fill="' + (filled ? "currentColor" : "none") + '" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
   }
@@ -227,7 +227,9 @@
     if (url) return '<span class="avatar ' + (cls || "") + '"><img src="' + esc(url) + '" alt="" loading="lazy"></span>';
     return '<span class="avatar ' + (cls || "") + '">' + esc(name.charAt(0).toUpperCase() || "J") + "</span>";
   }
-  function displayName(p) { return (p && p.nama) || "Pendaki JEJAKRUTE"; }
+  /* Aturan nama tampil (keputusan zgg 3 Nov 2026): nama -> @username
+     -> "Pendaki" polos. Bukan lagi "Pendaki JEJAKRUTE". */
+  function displayName(p) { return (p && p.nama) || (p && p.username ? "@" + p.username : "Pendaki"); }
   function usernameLabel(p) { return p && p.username ? "@" + p.username : ""; }
   /* Label komentar aplikasi: @username bila ada, else nama, else "Pendaki". */
   function commentLabel(p) {
@@ -511,7 +513,7 @@
   /* ---------- Kartu postingan: anatomi _PostCard aplikasi ---------- */
   function postCardHTML(post, opts) {
     opts = opts || {};
-    var a = post._author || { id: post.user_id, nama: "Pendaki JEJAKRUTE" };
+    var a = post._author || { id: post.user_id, nama: "Pendaki" };
     var s = session();
     var me = s ? s.user.id : null;
     var own = post.user_id === me;

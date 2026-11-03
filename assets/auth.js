@@ -210,9 +210,13 @@
     var nama = (profile && profile.nama) || meta.full_name || meta.name || "";
     var uname = profile && profile.username ? "@" + profile.username : (u.email || "");
     var ava = modal.querySelector("[data-jr-ava]");
+    // Aturan nama tampil (keputusan zgg 3 Nov 2026): tanpa nama ->
+    // tampilkan @username saja; "Pendaki" polos hanya bila keduanya
+    // kosong. Bukan lagi "Pendaki JEJAKRUTE".
+    var tampil = nama || (profile && profile.username ? "@" + profile.username : "Pendaki");
     if (meta.avatar_url) ava.innerHTML = '<img src="' + meta.avatar_url + '" alt="">';
-    else ava.textContent = (nama || "J").charAt(0).toUpperCase();
-    modal.querySelector("[data-jr-nm]").textContent = nama || "Pendaki JEJAKRUTE";
+    else ava.textContent = (tampil.replace(/^@+/, "") || "J").charAt(0).toUpperCase();
+    modal.querySelector("[data-jr-nm]").textContent = tampil;
     modal.querySelector("[data-jr-un]").textContent = uname;
     var lengkap = !!(profile && profile.username);
     modal.querySelector("[data-jr-lengkapi]").hidden = lengkap;
@@ -317,12 +321,12 @@
       return;
     }
     var u = session.user, meta = u.user_metadata || {};
-    var nama = (profile && profile.nama) || meta.full_name || meta.name || "Pendaki JEJAKRUTE";
+    var nama = (profile && profile.nama) || meta.full_name || meta.name || (profile && profile.username ? "@" + profile.username : "Pendaki");
     var uname = profile && profile.username ? "@" + profile.username : (u.email || "");
     var lengkap = !!(profile && profile.username);
     var ava = meta.avatar_url
       ? '<img src="' + meta.avatar_url + '" alt="">'
-      : (nama || "J").charAt(0).toUpperCase();
+      : (nama.replace(/^@+/, "") || "J").charAt(0).toUpperCase();
     acc.innerHTML =
       '<div class="jr-who"><span class="jr-ava">' + ava + '</span><span><span class="jr-nm"></span><br><span class="jr-un"></span></span></div>' +
       (lengkap ? "" : '<p class="jr-drawer-note"><strong style="color:#F4F5F3">Profilmu belum lengkap.</strong> Lengkapi nama &amp; username untuk membuka semua fitur anggota.</p>') +

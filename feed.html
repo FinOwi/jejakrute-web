@@ -149,7 +149,7 @@
       (commentsRes.data || []).forEach(function (r) { commentCounts[r.post_id] = (commentCounts[r.post_id] || 0) + 1; });
       return posts.map(function (p) {
         return Object.assign({}, p, {
-          _author: authors.get(p.user_id) || { id: p.user_id, nama: "Pendaki JEJAKRUTE" },
+          _author: authors.get(p.user_id) || { id: p.user_id, nama: "Pendaki" },
           _likeCount: likeCounts[p.id] || 0,
           _liked: !!liked[p.id],
           _saved: !!saved[p.id],
