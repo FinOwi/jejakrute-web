@@ -43,6 +43,8 @@
       <div><label for="editBio">Bio</label><textarea id="editBio" maxlength="500"></textarea></div>
       <div class="form-grid"><div><label for="editInstagram">Instagram</label><input id="editInstagram" maxlength="160" placeholder="username, @username, atau URL"></div>
       <div><label for="editTiktok">TikTok</label><input id="editTiktok" maxlength="160" placeholder="username, @username, atau URL"></div></div>
+      <div class="form-grid"><div><label for="editThreads">Threads</label><input id="editThreads" maxlength="160" placeholder="username, @username, atau URL"></div>
+      <div><label for="editFacebook">Facebook</label><input id="editFacebook" maxlength="160" placeholder="username, @username, atau URL"></div></div>
       <div class="form-grid"><div><label for="editAvatar">Foto profil baru</label><input id="editAvatar" type="file" accept="image/*"></div>
       <div><label for="editCover">Foto sampul baru</label><input id="editCover" type="file" accept="image/*"></div></div>
       <div class="form-actions"><button class="btn" type="submit">Simpan Profil</button><button class="btn plain" type="button" data-close-sheet>Batal</button><span class="small muted" id="editMsg"></span></div>
@@ -71,7 +73,7 @@
   var params = new URLSearchParams(location.search);
   var editSheet = document.getElementById("editSheet");
   var followSheet = document.getElementById("followSheet");
-  var currentProfile = null, currentBadges = [], currentKhusus = [], currentPosts = [], activeTab = "postingan";
+  var currentProfile = null, currentBadges = [], currentKhusus = [], currentPosts = [], activeTab = params.get("tab") === "lencana" ? "lencana" : "postingan";
 
   function socialUrl(value, platform) {
     if (!value) return "";
@@ -81,6 +83,8 @@
     var clean = v.replace(/^@+/, "").replace(/\/$/, "");
     if (platform === "instagram") return "https://instagram.com/" + clean.replace(/^instagram\.com\//i, "");
     if (platform === "tiktok") return "https://tiktok.com/@" + clean.replace(/^tiktok\.com\/@?/i, "");
+    if (platform === "threads") return "https://threads.net/@" + clean.replace(/^threads\.net\/@?/i, "");
+    if (platform === "facebook") return "https://facebook.com/" + clean.replace(/^facebook\.com\//i, "");
     return v;
   }
   function socialLabel(value, platform) {
@@ -90,6 +94,8 @@
       v = v.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
       if (platform === "instagram") v = v.replace(/^instagram\.com\//i, "");
       if (platform === "tiktok") v = v.replace(/^tiktok\.com\//i, "");
+      if (platform === "threads") v = v.replace(/^threads\.net\//i, "");
+      if (platform === "facebook") v = v.replace(/^facebook\.com\//i, "");
     }
     return v.charAt(0) === "@" ? v : "@" + v.replace(/^@+/, "");
   }
@@ -249,16 +255,17 @@
       if (postsRes.error) throw postsRes.error;
       currentPosts = postsRes.data || [];
       var sosial = p.sosial || {};
+      var namaPlatform = { instagram: "Instagram", tiktok: "TikTok", threads: "Threads", facebook: "Facebook" };
       var chips = "";
-      ["instagram", "tiktok"].forEach(function (platform) {
+      ["instagram", "tiktok", "threads", "facebook"].forEach(function (platform) {
         if (sosial[platform]) {
-          chips += '<a class="social-chip" href="' + K.esc(socialUrl(sosial[platform], platform)) + '" target="_blank" rel="noopener">' + K.esc(platform === "instagram" ? "Instagram" : "TikTok") + " · " + K.esc(socialLabel(sosial[platform], platform)) + "</a>";
+          chips += '<a class="social-chip" href="' + K.esc(socialUrl(sosial[platform], platform)) + '" target="_blank" rel="noopener">' + K.esc(namaPlatform[platform]) + " · " + K.esc(socialLabel(sosial[platform], platform)) + "</a>";
         }
       });
       var cover = p.cover_path ? '<img src="' + K.esc(K.mediaUrl(p.cover_path)) + '" alt="">' : "";
       var labels = K.badgeLabels(p);
       var actions = own
-        ? '<div class="form-actions" style="margin-top:12px"><button class="btn plain" type="button" data-edit-open style="flex:1">Edit Profil</button><button class="btn plain" type="button" data-share-profile style="flex:1">Bagikan Profil</button></div>'
+        ? '<div class="form-actions" style="margin-top:12px"><button class="btn plain" type="button" data-edit-open style="flex:1">Edit Profil</button><a class="btn plain" href="pengaturan.html" style="flex:1;text-align:center">Pengaturan</a><button class="btn plain" type="button" data-share-profile style="flex:1">Bagikan Profil</button></div>'
         : '<button class="profile-follow' + (followState ? " on" : "") + '" type="button" data-follow="' + (followState ? "1" : "0") + '">' + (followState ? "Mengikuti" : "Ikuti") + "</button>";
       root.innerHTML =
         '<div class="profile-cover">' + cover + "</div>" +
@@ -304,16 +311,7 @@
         catch (_) { window.prompt("Salin tautan profil:", url); }
       });
       var editBtn = root.querySelector("[data-edit-open]");
-      if (editBtn) editBtn.addEventListener("click", function () {
-        var sosial = p.sosial || {};
-        document.getElementById("editNama").value = p.nama || "";
-        document.getElementById("editUsername").value = p.username || "";
-        document.getElementById("editBio").value = p.bio || "";
-        document.getElementById("editInstagram").value = sosial.instagram || "";
-        document.getElementById("editTiktok").value = sosial.tiktok || "";
-        document.getElementById("editMsg").textContent = "";
-        openSheet(editSheet);
-      });
+      if (editBtn) editBtn.addEventListener("click", function () { isiFormEdit(p); });
       var followBtn = root.querySelector("[data-follow]");
       if (followBtn) {
         followBtn.addEventListener("click", async function () {
@@ -330,6 +328,18 @@
           }
         });
       }
+    }
+    function isiFormEdit(p) {
+      var sosial = p.sosial || {};
+      document.getElementById("editNama").value = p.nama || "";
+      document.getElementById("editUsername").value = p.username || "";
+      document.getElementById("editBio").value = p.bio || "";
+      document.getElementById("editInstagram").value = sosial.instagram || "";
+      document.getElementById("editTiktok").value = sosial.tiktok || "";
+      document.getElementById("editThreads").value = sosial.threads || "";
+      document.getElementById("editFacebook").value = sosial.facebook || "";
+      document.getElementById("editMsg").textContent = "";
+      openSheet(editSheet);
     }
     var editForm = document.getElementById("editProfileForm");
     editForm.addEventListener("submit", async function (e) {
@@ -352,7 +362,9 @@
         if (used.data && used.data.length) throw new Error("Username itu sudah dipakai — coba variasi lain.");
         var sosial = Object.assign({}, p.sosial || {}, {
           instagram: document.getElementById("editInstagram").value.trim(),
-          tiktok: document.getElementById("editTiktok").value.trim()
+          tiktok: document.getElementById("editTiktok").value.trim(),
+          threads: document.getElementById("editThreads").value.trim(),
+          facebook: document.getElementById("editFacebook").value.trim()
         });
         var payload = { nama: nama, username: uname, bio: bio, sosial: sosial };
         if (avatarFile) {
@@ -380,7 +392,12 @@
       }
     });
 
-    try { await loadProfile(); }
+    try {
+      await loadProfile();
+      // Deep-link dari halaman Pengaturan: ?edit=1 langsung membuka
+      // lembar Edit Profil milik sendiri.
+      if (params.get("edit") === "1" && currentProfile && currentProfile.id === me) isiFormEdit(currentProfile);
+    }
     catch (err) {
       root.innerHTML = '<div class="empty error">Profil gagal dimuat dari server: ' + K.esc(err.message || err) + "</div>";
     }

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pengaturan — JEJAKRUTE</title>
+<meta name="description" content="Pengaturan profil JEJAKRUTE di web: edit profil, badge di samping nama, koleksi badge, dan akun — tersimpan di server yang sama dengan aplikasi.">
+<link rel="icon" href="assets/logo/favicon.ico" sizes="48x48">
+<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/logo/apple-touch-icon.png">
+<link rel="manifest" href="assets/logo/site.webmanifest">
+<meta name="theme-color" content="#17191C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/member.css?v=20261028-2">
+<style>
+/* Pengaturan — gaya kritis sejajar halaman (meniru baris Pengaturan aplikasi) */
+.set-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+.set-card h2{font-size:16px;margin-bottom:4px}
+.set-card .sub{font-size:12px;color:var(--mut)}
+.set-row{display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid var(--line);text-decoration:none;color:var(--txt)}
+.set-row:first-of-type{border-top:none}
+.set-row .grow{flex:1}
+.set-row b{display:block;font-size:13.5px}
+.set-row span{font-size:11.5px;color:var(--mut)}
+.set-row .chev{color:var(--mut);font-size:16px}
+.acct{display:flex;gap:12px;align-items:center}
+.acct .grow{flex:1}
+.pin-row{display:flex;align-items:center;gap:10px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-top:8px}
+.pin-row img{width:34px;height:34px;border-radius:50%;flex:none}
+.pin-row .grow{flex:1}
+.pin-row b{display:block;font-size:13px}
+.pin-row span{font-size:11px;color:var(--mut)}
+.pin-btn{background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:9px;min-width:34px;height:34px;font-size:14px;cursor:pointer}
+.pin-btn:disabled{opacity:.35;cursor:default}
+.own-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+.own-item{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.own-item img{width:64px;height:64px;margin:0 auto}
+.own-item b{display:block;font-size:12px;margin-top:6px}
+.own-item span{display:block;font-size:10.5px;color:var(--mut);margin:2px 0 8px}
+.own-item .btn{width:100%}
+.stale{color:var(--amber);font-size:10.5px}
+</style>
+</head>
+<body data-member-page="pengaturan">
+<div data-member-shell></div>
+
+<main class="member-main" data-member-main hidden>
+  <p style="margin-bottom:10px"><a href="profil.html">← Kembali ke Profil</a></p>
+  <h1 style="margin-bottom:4px">Pengaturan</h1>
+  <p class="muted" style="margin-bottom:16px">Semua perubahan di halaman ini tersimpan di server yang sama dengan aplikasi — mengubah di web sama dengan mengubah di aplikasi.</p>
+  <div id="setRoot"><p class="loading">Memuat pengaturan dari server…</p></div>
+</main>
+
+<section class="member-lock" data-member-lock hidden></section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script src="assets/auth.js?v=20261027-4"></script>
+<script src="assets/badge-data.js"></script>
+<script src="assets/member.js?v=20261103-1"></script>
+<script>
+(function () {
+  "use strict";
+  var K = window.MemberKit;
+  var JRB = window.JR_BADGE;
+  var root = document.getElementById("setRoot");
+
+  var profil = null, me = null, client = null;
+  var terpasang = [];        // label badge terpasang (salinan kerja)
+  var terpasangServer = [];  // label badge terpasang (keadaan server terakhir)
+  var dimiliki = [];         // {label, sub, img} — semua badge pinnable yang dimiliki
+
+  function labelMetrikKhusus(kunci, jumlah) {
+    if (kunci === "khusus-anggota-awal") return "Pendaftar ke-" + jumlah;
+    if (kunci === "khusus-moderator") return "Peran aktif";
+    if (kunci.indexOf("khusus-kontributor") === 0) return jumlah + " rute diterbitkan";
+    if (kunci === "khusus-pelapor-kondisi" || kunci === "khusus-penjaga-jalur") return jumlah + " laporan diterima";
+    if (kunci.indexOf("khusus-penemu") === 0) return jumlah + " lokasi diterbitkan";
+    if (kunci === "khusus-perintis") return jumlah + " lokasi dirintis";
+    return "Dimiliki";
+  }
+  // Label pill badge khusus: nama tingkat tertinggi yang jumlahnya
+  // sudah dicapai (mis. jumlah 7 → "Kontributor Rute ×5") — persis
+  // katalog aplikasi; label inilah yang ditulis ke lencana_terpasang.
+  function labelKhusus(kunci, jumlah) {
+    if (!JRB) return kunci;
+    var base = kunci.replace(/^khusus-/, "");
+    var best = JRB.KHUSUS[base] ? base : null, bestN = 0;
+    Object.keys(JRB.KHUSUS).forEach(function (k) {
+      if (k.indexOf(base + "-") === 0) {
+        var n = parseInt(k.slice(base.length + 1), 10);
+        if (!isNaN(n) && n <= jumlah && n > bestN) { best = k; bestN = n; }
+      }
+    });
+    return best ? JRB.KHUSUS[best] : base;
+  }
+  function labelGunung(row) {
+    if (!JRB) return null;
+    var g = JRB.GUNUNG[JRB.slugTelanjang(row.lokasi_id || "")];
+    if (!g) return null;
+    return g[0] + " x" + (row.jumlah || 1);
+  }
+  function subGunung(row) {
+    var g = JRB ? JRB.GUNUNG[JRB.slugTelanjang(row.lokasi_id || "")] : null;
+    return (g && g[1] ? K.fmtNum(g[1]) + " mdpl · " : "") + K.fmtNum(row.jumlah || 0) + "× terverifikasi";
+  }
+  function imgLabel(label) { return JRB ? JRB.imgUntukLabel(label) : null; }
+  function samaArray(a, b) {
+    return a.length === b.length && a.every(function (x, i) { return x === b[i]; });
+  }
+
+  function renderAlbum() {
+    var host = document.getElementById("albumHost");
+    if (!host) return;
+    var dimilikiSet = {};
+    dimiliki.forEach(function (d) { dimilikiSet[d.label] = d; });
+    var pinHTML = terpasang.length ? terpasang.map(function (label, i) {
+      var d = dimilikiSet[label];
+      var img = imgLabel(label);
+      return '<div class="pin-row">' + (img ? '<img src="' + K.esc(img) + '" alt="">' : "") +
+        '<span class="grow"><b>' + K.esc(label) + "</b>" + (d ? "<span>" + K.esc(d.sub) + "</span>" : '<span class="stale">Tidak lagi tercatat dimiliki — akan tetap tersimpan apa adanya bila kamu tidak melepasnya.</span>') + "</span>" +
+        '<button class="pin-btn" type="button" data-move="-1" data-i="' + i + '"' + (i === 0 ? " disabled" : "") + ' aria-label="Naikkan">↑</button>' +
+        '<button class="pin-btn" type="button" data-move="1" data-i="' + i + '"' + (i === terpasang.length - 1 ? " disabled" : "") + ' aria-label="Turunkan">↓</button>' +
+        '<button class="pin-btn" type="button" data-lepas="' + i + '" aria-label="Lepas badge">✕</button></div>';
+    }).join("") : '<div class="empty">Belum ada badge terpasang. Pasang dari daftar badge yang kamu miliki di bawah.</div>';
+    var ownHTML = dimiliki.length ? '<div class="own-grid">' + dimiliki.map(function (d) {
+      var sudah = terpasang.indexOf(d.label) >= 0;
+      var penuh = terpasang.length >= 3;
+      return '<div class="own-item">' + (d.img ? '<img loading="lazy" src="' + K.esc(d.img) + '" alt="">' : "") +
+        "<b>" + K.esc(d.label) + "</b><span>" + K.esc(d.sub) + "</span>" +
+        (sudah
+          ? '<button class="btn plain" type="button" disabled>Terpasang ✓</button>'
+          : '<button class="btn" type="button" data-pasang="' + K.esc(d.label) + '"' + (penuh ? " disabled" : "") + ">Pasang</button>") +
+        "</div>";
+    }).join("") + "</div>" : '<div class="empty">Belum ada badge yang tercatat dimiliki di server. Badge Gunung terbuka dari pendakian terverifikasi; badge khusus dari kontribusi.</div>';
+    var kotor = !samaArray(terpasang, terpasangServer);
+    host.innerHTML =
+      "<h3 style='margin-top:6px'>Terpasang (" + terpasang.length + "/3)</h3>" + pinHTML +
+      "<h3 style='margin-top:18px'>Badge yang Kamu Miliki</h3>" + ownHTML +
+      '<div class="form-actions" style="margin-top:14px"><button class="btn" type="button" id="simpanBadge"' + (kotor ? "" : " disabled") + ">Simpan Badge Terpasang</button>" +
+      '<span class="small muted" id="badgeMsg">' + (kotor ? "Ada perubahan belum disimpan." : "Sudah sama dengan server.") + "</span></div>";
+    bindAlbum();
+  }
+  function bindAlbum() {
+    root.querySelectorAll("[data-lepas]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        terpasang.splice(parseInt(b.getAttribute("data-lepas"), 10), 1);
+        renderAlbum();
+      });
+    });
+    root.querySelectorAll("[data-move]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = parseInt(b.getAttribute("data-i"), 10);
+        var j = i + parseInt(b.getAttribute("data-move"), 10);
+        if (j < 0 || j >= terpasang.length) return;
+        var t = terpasang[i]; terpasang[i] = terpasang[j]; terpasang[j] = t;
+        renderAlbum();
+      });
+    });
+    root.querySelectorAll("[data-pasang]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var label = b.getAttribute("data-pasang");
+        if (terpasang.length >= 3 || terpasang.indexOf(label) >= 0) return;
+        terpasang.push(label);
+        renderAlbum();
+      });
+    });
+    var simpan = document.getElementById("simpanBadge");
+    if (simpan) simpan.addEventListener("click", simpanBadge);
+  }
+  async function simpanBadge() {
+    var btn = document.getElementById("simpanBadge");
+    var msg = document.getElementById("badgeMsg");
+    btn.disabled = true; msg.textContent = "Menyimpan ke server…";
+    try {
+      // Pola yang sama dengan aplikasi: update + baca-balik verifikasi.
+      var res = await client.from("profiles").update({ lencana_terpasang: terpasang }).eq("id", me).select("lencana_terpasang");
+      if (res.error) throw res.error;
+      var balik = res.data && res.data.length ? K.badgeLabels(res.data[0]) : null;
+      if (!balik || !samaArray(balik, terpasang)) throw new Error("Verifikasi baca-balik tidak cocok — coba lagi.");
+      terpasangServer = terpasang.slice();
+      profil.lencana_terpasang = terpasang.slice();
+      msg.textContent = "Tersimpan di server — badge samping namamu kini sama di web dan aplikasi.";
+      K.toast("Badge terpasang disimpan.");
+      renderAlbum();
+    } catch (err) {
+      msg.textContent = "Gagal menyimpan: " + (err.message || err);
+      btn.disabled = false;
+    }
+  }
+
+  async function mulai() {
+    var ctx = await K.ready();
+    if (!ctx) return;
+    client = ctx.client; me = ctx.session.user.id;
+    try {
+      var pRes = await client.from("profiles").select("*").eq("id", me).single();
+      if (pRes.error) throw pRes.error;
+      profil = pRes.data;
+      var gRes = await client.from("user_badges").select("*").eq("user_id", me).order("lokasi_nama", { ascending: true });
+      if (gRes.error) throw gRes.error;
+      var kRes = await client.from("user_badges_khusus").select("*").eq("user_id", me).order("kunci", { ascending: true });
+      var khususRows = kRes.error ? [] : (kRes.data || []);
+
+      dimiliki = [];
+      (gRes.data || []).forEach(function (r) {
+        var label = labelGunung(r);
+        if (label) dimiliki.push({ label: label, sub: subGunung(r), img: imgLabel(label) });
+      });
+      khususRows.forEach(function (r) {
+        var label = labelKhusus(r.kunci, r.jumlah || 0);
+        dimiliki.push({ label: label, sub: labelMetrikKhusus(r.kunci, r.jumlah || 0), img: imgLabel(label) });
+      });
+      terpasangServer = K.badgeLabels(profil);
+      terpasang = terpasangServer.slice();
+
+      var email = (ctx.session.user.email || "");
+      var penyedia = (ctx.session.user.app_metadata && ctx.session.user.app_metadata.provider) || "google";
+      var sosial = profil.sosial || {};
+      var sosList = [["instagram", "Instagram"], ["tiktok", "TikTok"], ["threads", "Threads"], ["facebook", "Facebook"]]
+        .filter(function (x) { return sosial[x[0]]; })
+        .map(function (x) { return x[1] + " · " + sosial[x[0]]; }).join("<br>");
+      var moderator = profil.username === "zgg" || khususRows.some(function (r) { return r.kunci === "khusus-moderator"; });
+
+      root.innerHTML =
+        '<section class="set-card"><div class="acct">' + K.avatarHTML(profil, "profile-avatar", ctx.session.user) +
+        '<span class="grow"><b>' + K.nameHTML(profil) + '</b><br><span class="sub">' + K.esc(K.usernameLabel(profil)) + (email ? " · " + K.esc(email) : "") + '</span></span></div>' +
+        '<div class="sub" style="margin-top:10px">Metode masuk: ' + K.esc(penyedia === "google" ? "Google" : penyedia) + ' — akun yang sama dengan aplikasi.</div>' +
+        '<div class="form-actions" style="margin-top:12px"><button class="btn plain" type="button" id="btnKeluar">Keluar</button></div></section>' +
+
+        '<section class="set-card"><h2>Profil &amp; Tautan</h2>' +
+        '<a class="set-row" href="profil.html?edit=1"><span class="grow"><b>Edit Profil</b><span>Foto profil &amp; sampul, nama tampil, bio, username</span></span><span class="chev">›</span></a>' +
+        '<a class="set-row" href="profil.html?edit=1"><span class="grow"><b>Tautan Media Sosial</b><span>' + (sosList || "Belum ada tautan — tambahkan lewat Edit Profil") + '</span></span><span class="chev">›</span></a>' +
+        '<a class="set-row" href="profil.html?tab=lencana"><span class="grow"><b>Koleksi Badge</b><span>Semua badge yang kamu miliki + gelarmu</span></span><span class="chev">›</span></a>' +
+        (moderator ? '<a class="set-row" href="tinjau-lokasi.html"><span class="grow"><b>Tinjauan Moderator</b><span>Antrean usulan lokasi komunitas</span></span><span class="chev">›</span></a>' : "") +
+        "</section>" +
+
+        '<section class="set-card"><h2>Badge di Samping Nama</h2>' +
+        '<p class="sub">Pilih maks 3 badge untuk tampil di samping namamu, dan atur urutannya. Sama persis dengan album di aplikasi — datanya satu di server.</p>' +
+        '<div id="albumHost"><p class="loading">Memuat badge…</p></div></section>';
+
+      document.getElementById("btnKeluar").addEventListener("click", async function () {
+        try { await client.auth.signOut(); } catch (_) {}
+        location.href = "index.html";
+      });
+      renderAlbum();
+    } catch (err) {
+      root.innerHTML = '<div class="empty error">Pengaturan gagal dimuat dari server: ' + K.esc(err.message || err) + "</div>";
+    }
+  }
+  mulai();
+})();
+</script>
+</body>
+</html>
