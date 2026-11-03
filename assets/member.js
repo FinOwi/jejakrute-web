@@ -50,6 +50,64 @@
     return baseUrl() + "/storage/v1/object/public/media/" + String(path).split("/").map(encodeURIComponent).join("/");
   }
 
+  /* ---------- Video R2 (fitur posting video) ---------- */
+  var R2_MEDIA = "https://media.jejakrute.my.id";
+  var R2_WORKER = "https://video-api.jejakrute.my.id";
+  function r2Url(key) {
+    if (!key) return "";
+    return R2_MEDIA + "/" + String(key).split("/").map(encodeURIComponent).join("/");
+  }
+  /* Isi src/poster semua elemen data-privat-* di root dengan URL
+     bertanda tangan Worker (ember privat hanya bisa dibaca begitu;
+     token = sesi web yang sama dengan aplikasi). Menangani kartu
+     <video data-privat-video data-privat-poster> dan tile profil
+     <img data-privat-poster>. */
+  async function resolvePrivateVideos(root) {
+    var scope = root || document;
+    if (!scope.querySelectorAll) return;
+    var els = scope.querySelectorAll("video[data-privat-video], img[data-privat-poster]");
+    if (!els.length) return;
+    var s = session();
+    var token = s && s.access_token;
+    if (!token) {
+      var c = client();
+      if (c) {
+        try {
+          var res = await c.auth.getSession();
+          token = res && res.data && res.data.session ? res.data.session.access_token : null;
+        } catch (_) { /* sesi tidak tersedia: biarkan kosong */ }
+      }
+    }
+    if (!token) return;
+    async function mintaPutar(kunci) {
+      var r = await fetch(R2_WORKER + "/putar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify({ kunci: kunci })
+      });
+      var j = await r.json();
+      if (!r.ok || !j || !j.url) throw new Error((j && j.error) || "Worker menolak");
+      return j.url;
+    }
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var kunci = el.getAttribute("data-privat-video");
+      var poster = el.getAttribute("data-privat-poster");
+      el.removeAttribute("data-privat-video");
+      el.removeAttribute("data-privat-poster");
+      if (kunci) {
+        try { el.src = await mintaPutar(kunci); } catch (_) { /* dibiarkan kosong */ }
+      }
+      if (poster) {
+        try {
+          var urlPoster = await mintaPutar(poster);
+          if (el.tagName === "IMG") el.src = urlPoster;
+          else el.poster = urlPoster;
+        } catch (_) { /* tanpa poster */ }
+      }
+    }
+  }
+
   /* ---------- Media: pembaca format aplikasi {p,w,h} & {gpx,…} ---------- */
   function mediaArray(post) {
     var raw = post && post.media;
@@ -71,6 +129,16 @@
         return { type: isGpx ? "gpx" : (jenis === "video" ? "video" : "foto"), path: x, w: 0, h: 0, idx: idx };
       }
       if (typeof x === "object") {
+        if (x.v) {
+          return {
+            type: "video", path: String(x.v), r2: true, idx: idx,
+            poster: x.poster ? String(x.poster) : "",
+            ember: x.ember === "privat" ? "privat" : "publik",
+            judul: x.judul || "", km: Number(x.km || 0),
+            dur: Number(x.dur || 0), naik: Number(x.naik || 0),
+            durasiVideo: Number(x.durasi_video || 0)
+          };
+        }
         if (x.gpx) {
           return {
             type: "gpx", path: String(x.gpx), w: 0, h: 0, idx: idx,
@@ -455,7 +523,18 @@
     else if (post.jenis === "foto") media = galleryHTML(post);
     else if (post.jenis === "video") {
       var v = mediaItems(post)[0];
-      if (v) media = '<video class="post-video" controls preload="metadata" src="' + esc(mediaUrl(v.path)) + '"></video>';
+      if (v && v.r2 && v.ember === "privat") {
+        // Ember privat tidak punya URL publik: src & poster diisi
+        // resolvePrivateVideos sesudah kartu masuk DOM.
+        media = '<video class="post-video" controls preload="none" data-privat-video="' + esc(v.path) + '"' +
+          (v.poster ? ' data-privat-poster="' + esc(v.poster) + '"' : "") + "></video>" +
+          '<p class="pprivat-note">Privat — hanya kamu yang bisa melihat postingan ini.</p>';
+      } else if (v && v.r2) {
+        media = '<video class="post-video" controls preload="metadata" src="' + esc(r2Url(v.path)) + '"' +
+          (v.poster ? ' poster="' + esc(r2Url(v.poster)) + '"' : "") + "></video>";
+      } else if (v) {
+        media = '<video class="post-video" controls preload="metadata" src="' + esc(mediaUrl(v.path)) + '"></video>';
+      }
     }
     var commentControl = opts.commentsHref
       ? '<a class="pact" href="' + esc(opts.commentsHref) + '">' + ICONS.comment + '<span><b data-comment-count>' + fmtNum(post._commentCount) + "</b> komentar</span></a>"
@@ -505,6 +584,7 @@
     var c = client();
     var s = session();
     if (!root || !c || !s) return;
+    resolvePrivateVideos(root);
     var me = s.user.id;
 
     async function loadComments(card, postId) {
@@ -843,7 +923,9 @@
     authProfile: authProfile,
     baseUrl: baseUrl,
     mediaUrl: mediaUrl,
+    r2Url: r2Url,
     mediaItems: mediaItems,
+    resolvePrivateVideos: resolvePrivateVideos,
     photoItems: photoItems,
     replayItemOf: replayItemOf,
     galleryHTML: galleryHTML,

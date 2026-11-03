@@ -91,7 +91,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
 <script src="assets/auth.js?v=20261027-4"></script>
 <script src="assets/badge-data.js"></script>
-<script src="assets/member.js"></script>
+<script src="assets/member.js?v=20261103-1"></script>
 <script>
 (function () {
   "use strict";
@@ -117,12 +117,12 @@
     }
     async function fetchPosts() {
       if (currentTab === "untukmu") {
-        var r = await c.from("posts").select("*").eq("status_moderasi", "tampil").order("created_at", { ascending: false }).limit(60);
+        var r = await c.from("posts").select("*").eq("status_moderasi", "tampil").eq("visibilitas", "publik").order("created_at", { ascending: false }).limit(60);
         if (r.error) throw r.error;
         return r.data || [];
       }
       var ids = await followedIds();
-      var visibleRes = await c.from("posts").select("*").eq("status_moderasi", "tampil").in("user_id", Array.from(new Set(ids.concat([me])))).order("created_at", { ascending: false }).limit(60);
+      var visibleRes = await c.from("posts").select("*").eq("status_moderasi", "tampil").eq("visibilitas", "publik").in("user_id", Array.from(new Set(ids.concat([me])))).order("created_at", { ascending: false }).limit(60);
       if (visibleRes.error) throw visibleRes.error;
       var ownRes = await c.from("posts").select("*").eq("user_id", me).order("created_at", { ascending: false }).limit(60);
       if (ownRes.error) throw ownRes.error;

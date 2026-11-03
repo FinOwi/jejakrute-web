@@ -62,7 +62,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
 <script src="assets/auth.js?v=20261027-4"></script>
 <script src="assets/badge-data.js"></script>
-<script src="assets/member.js"></script>
+<script src="assets/member.js?v=20261103-1"></script>
 <script>
 (function () {
   "use strict";
@@ -106,7 +106,18 @@
       inner = '<span class="tile-replay"><span class="rp-play">' + K.icons.play + '</span>Replay</span>';
     } else if (post.jenis === "video") {
       var v = K.mediaItems(post)[0];
-      inner = v ? '<video preload="metadata" src="' + K.esc(K.mediaUrl(v.path)) + '"></video>' : '<span class="tile-text">Video</span>';
+      if (v && v.r2 && v.ember === "privat") {
+        badges = '<span class="tile-badges"><span class="tile-badge">Privat</span></span>';
+        inner = v.poster
+          ? '<img data-privat-poster="' + K.esc(v.poster) + '" alt="" loading="lazy">'
+          : '<span class="tile-text">Video Privat</span>';
+      } else if (v && v.r2) {
+        inner = v.poster
+          ? '<img src="' + K.esc(K.r2Url(v.poster)) + '" alt="" loading="lazy">'
+          : '<video preload="metadata" src="' + K.esc(K.r2Url(v.path)) + '"></video>';
+      } else {
+        inner = v ? '<video preload="metadata" src="' + K.esc(K.mediaUrl(v.path)) + '"></video>' : '<span class="tile-text">Video</span>';
+      }
     } else {
       inner = '<span class="tile-text">' + K.esc(post.caption || "Postingan") + "</span>";
     }
@@ -269,6 +280,7 @@
         "</div>" +
         '<div id="profileTabContent">' + tabContentHTML(p, own) + "</div>";
       bindProfileActions(p, own);
+      if (K.resolvePrivateVideos) K.resolvePrivateVideos(root);
     }
     function bindProfileActions(p, own) {
       root.querySelectorAll("[data-tab]").forEach(function (btn) {
@@ -276,6 +288,7 @@
           activeTab = btn.getAttribute("data-tab");
           root.querySelectorAll("[data-tab]").forEach(function (b) { b.classList.toggle("active", b === btn); });
           document.getElementById("profileTabContent").innerHTML = tabContentHTML(p, own);
+          if (K.resolvePrivateVideos) K.resolvePrivateVideos(document.getElementById("profileTabContent"));
         });
       });
       root.querySelectorAll("[data-stat]").forEach(function (btn) {

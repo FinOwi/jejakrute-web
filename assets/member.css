@@ -150,6 +150,7 @@ body[data-member-page="profil"] .member-main{max-width:760px}
 .gal-dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.55)}
 .gal-dots i.on{background:var(--mint)}
 .post-video{width:100%;max-height:78vh;background:#000;border-radius:14px;margin-top:10px}
+.pprivat-note{color:var(--mut);font-size:12px;margin-top:6px}
 .rpcard{background:var(--card2);border-radius:14px;padding:10px;margin-top:10px}
 .rp-thumb{position:relative;display:block;height:110px;border-radius:10px;background:var(--bg-deep);overflow:hidden}
 .rp-spark{width:100%;height:100%;display:block}
