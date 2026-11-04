@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Contoh — Peta Kota Gaya Apple • JEJAKRUTE</title>
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
+<script>
+  // Pemuat MapLibre dengan cadangan berjenjang (jsdelivr → unpkg → cdnjs).
+  window.__mlSumber = 'jsdelivr';
+  function __muatCadangan(){
+    if (window.maplibregl) return;
+    if (window.__mlSumber === 'jsdelivr'){
+      window.__mlSumber = 'unpkg';
+      document.write('<script src="https:\/\/unpkg.com\/maplibre-gl@5\/dist\/maplibre-gl.js"><\/script>');
+    } else if (window.__mlSumber === 'unpkg'){
+      window.__mlSumber = 'cdnjs';
+      document.write('<script src="https:\/\/cdnjs.cloudflare.com\/ajax\/libs\/maplibre-gl\/5.7.0\/maplibre-gl.min.js"><\/script>');
+    }
+  }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.js" onerror="__muatCadangan()"></script>
+<script>if (!window.maplibregl) __muatCadangan();</script>
+<style>
+  html,body{margin:0;height:100%;font-family:-apple-system,'Segoe UI',Roboto,sans-serif}
+  #map{position:absolute;inset:0}
+  .kartu{position:absolute;left:12px;right:12px;top:12px;background:rgba(255,255,255,.94);
+    border-radius:16px;padding:12px 14px;box-shadow:0 4px 18px rgba(20,40,30,.18);z-index:5}
+  .kartu h1{font-size:14px;margin:0 0 2px;color:#17301F}
+  .kartu p{font-size:11.5px;margin:0;color:#5A6B5E;line-height:1.5}
+  .chiprow{position:absolute;left:12px;right:12px;top:118px;display:flex;gap:8px;z-index:5}
+  .chip{flex:1;text-align:center;padding:9px 4px;border-radius:99px;font-size:12px;font-weight:700;
+    background:rgba(255,255,255,.92);color:#41503F;border:1px solid #D8DED2;cursor:pointer;
+    box-shadow:0 2px 8px rgba(20,40,30,.12)}
+  .chip.aktif{background:#17CE8F;color:#0C2A1A;border-color:#17CE8F}
+  .bawah{position:absolute;left:12px;right:12px;bottom:14px;background:rgba(23,34,26,.88);color:#E9F2EA;
+    border-radius:14px;padding:10px 13px;font-size:11px;line-height:1.55;z-index:5}
+  .bawah b{color:#7CE7BC}
+  .maplibregl-ctrl-attrib{font-size:9px}
+  #diag{display:none;position:absolute;left:12px;right:12px;bottom:14px;z-index:9;
+    background:#FDECEA;color:#7A1F16;border:1px solid #E5A49C;border-radius:14px;
+    padding:11px 13px;font-size:11.5px;line-height:1.55}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="kartu">
+  <h1>🍏 Contoh: Peta Kota Gaya Apple — Medan</h1>
+  <p>Data vektor asli OpenStreetMap (skema Shortbread) yang digambar ulang dengan style terang-bersih ala Apple Maps. Geser &amp; cubit untuk menilai. Ini gaya yang sama yang nanti dipasang ke aplikasi lewat <b>vector_map_tiles</b>.</p>
+</div>
+
+<div class="chiprow">
+  <div class="chip aktif" id="chipApple">Gaya Apple (baru)</div>
+  <div class="chip" id="chipCarto">CARTO Terang (sekarang)</div>
+</div>
+
+<div class="bawah">
+  Bedanya: jalan besar <b>kuning pucat</b>, jalan lingkungan <b>putih bersih</b>, taman <b>hijau pastel</b>, sungai <b>biru muda</b>, gedung <b>abu krem tipis</b>, label seminimal mungkin. Mode Mendaki tetap peta topografi kita — gaya ini khusus Berkendara / Sepeda / kota.
+</div>
+
+<div id="diag"></div>
+
+<script>
+function __diag(teks){
+  var d = document.getElementById('diag');
+  if (d){ d.style.display = 'block'; d.textContent = teks; }
+}
+window.addEventListener('error', function(e){
+  __diag('Ada skrip yang gagal jalan: ' + (e.message || 'tidak diketahui') +
+    ' — coba buka tautan halamannya di Chrome, bukan dari penampil berkas.');
+});
+if (!window.maplibregl){
+  __diag('Pustaka peta (MapLibre) tidak termuat dari semua CDN — kemungkinan penampil berkas memblokir skrip luar, atau koneksi ke CDN terputus. Buka tautan halamannya di Chrome.');
+  throw new Error('maplibregl tidak tersedia');
+}
+try {
+  var __gl = document.createElement('canvas').getContext('webgl2') ||
+             document.createElement('canvas').getContext('webgl');
+  if (!__gl) __diag('Peramban ini tidak menyediakan WebGL, jadi peta tidak bisa digambar. Buka di Chrome versi terbaru.');
+} catch(e) { /* abaikan */ }
+
+const SUMBER_SB = {
+  type: 'vector',
+  tiles: ['https://vector.openstreetmap.org/shortbread_v1/{z}/{x}/{y}.mvt'],
+  maxzoom: 14,
+  attribution: '© OpenStreetMap contributors'
+};
+const GLYPHS = 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
+const FONT_R = ['Noto Sans Regular'];
+const FONT_B = ['Noto Sans Bold'];
+const FONT_I = ['Noto Sans Italic'];
+
+function lebar(z13, z20){ return ['interpolate',['linear'],['zoom'],13,z13,20,z20]; }
+
+const styleApple = {
+  version: 8,
+  glyphs: GLYPHS,
+  sources: { sb: SUMBER_SB },
+  layers: [
+    { id:'latar', type:'background', paint:{ 'background-color':'#F2F2EC' } },
+
+    // Guna lahan — sangat tipis, khas Apple
+    { id:'lahan-permukiman', type:'fill', source:'sb', 'source-layer':'land',
+      filter:['in',['get','kind'],'residential'],
+      paint:{ 'fill-color':'#ECECE4' } },
+    { id:'lahan-komersial', type:'fill', source:'sb', 'source-layer':'land',
+      filter:['in',['get','kind'],'commercial','industrial','retail'],
+      paint:{ 'fill-color':'#F0EAE2' } },
+    { id:'lahan-hijau', type:'fill', source:'sb', 'source-layer':'land',
+      filter:['in',['get','kind'],'park','grass','garden','cemetery','grave_yard','forest','wood','meadow','pitch','playground'],
+      paint:{ 'fill-color':'#DCEAC4' } },
+    { id:'situs', type:'fill', source:'sb', 'source-layer':'sites',
+      filter:['in',['get','kind'],'school','university','hospital'],
+      paint:{ 'fill-color':'#F3EEE1' } },
+    { id:'parkir', type:'fill', source:'sb', 'source-layer':'sites',
+      filter:['==',['get','kind'],'parking'],
+      paint:{ 'fill-color':'#E8E8E0' } },
+
+    // Air — biru muda pucat
+    { id:'air-poligon', type:'fill', source:'sb', 'source-layer':'water_polygons',
+      paint:{ 'fill-color':'#ABD4F5' } },
+    { id:'air-garis', type:'line', source:'sb', 'source-layer':'water_lines',
+      paint:{ 'line-color':'#ABD4F5', 'line-width':lebar(1.2,5) },
+      layout:{ 'line-cap':'round' } },
+
+    // Gedung — abu krem sangat tipis (muncul zoom dekat)
+    { id:'gedung', type:'fill', source:'sb', 'source-layer':'buildings', minzoom:15,
+      paint:{ 'fill-color':'#E4DFD6', 'fill-outline-color':'#D2CCC0' } },
+
+    // Rel — abu putus-putus
+    { id:'rel', type:'line', source:'sb', 'source-layer':'streets',
+      filter:['==',['get','kind'],'rail'],
+      paint:{ 'line-color':'#C4C4BA', 'line-width':1.2, 'line-dasharray':[3,2] } },
+
+    // Jalan setapak di taman — tipis putus-putus
+    { id:'setapak', type:'line', source:'sb', 'source-layer':'streets', minzoom:14,
+      filter:['in',['get','kind'],'footway','path','pedestrian','steps','cycleway'],
+      paint:{ 'line-color':'#C9CFC0', 'line-width':1.1, 'line-dasharray':[2.5,1.8] },
+      layout:{ 'line-cap':'round' } },
+
+    // ===== Jalan: casing lalu isi, per kelas =====
+    { id:'casing-besar', type:'line', source:'sb', 'source-layer':'streets',
+      filter:['in',['get','kind'],'motorway','trunk','motorway_link','trunk_link'],
+      paint:{ 'line-color':'#EFA93E', 'line-width':lebar(3.5,17) }, layout:{ 'line-cap':'round','line-join':'round' } },
+    { id:'isi-besar', type:'line', source:'sb', 'source-layer':'streets',
+      filter:['in',['get','kind'],'motorway','trunk','motorway_link','trunk_link'],
+      paint:{ 'line-color':'#FBD971', 'line-width':lebar(2.4,14.5) }, layout:{ 'line-cap':'round','line-join':'round' } },
+
+    { id:'casing-utama', type:'line', source:'sb', 'source-layer':'streets',
+      filter:['in',['get','kind'],'primary','primary_link'],
+      paint:{ 'line-color':'#DCD6C2', 'line-width':lebar(3,15) }, layout:{ 'line-cap':'round','line-join':'round' } },
+    { id:'isi-utama', type:'line', source:'sb', 'source-layer':'streets',
+      filter:['in',['get','kind'],'primary','primary_link'],
+      paint:{ 'line-color':'#FDF3CD', 'line-width':lebar(2,12.5) }, layout:{ 'line-cap':'round','line-join':'round' } },
+
+    { id:'casing-dua', type:'line', source:'sb', 'source-layer':'streets',
+      filter:['in',['get','kind'],'secondary','tertiary','secondary_link','tertiary_link'],
+      paint:{ 'line-color':'#CFCFC6', 'line-width':lebar(2.4,12.5) }, layout:{ 'line-cap':'round','line-join':'round' } },
+    { id:'isi-dua', type:'line', source:'sb', 'source-layer':'streets',
+      filter:['in',['get','kind'],'secondary','tertiary','secondary_link','tertiary_link'],
+      paint:{ 'line-color':'#FFFFFF', 'line-width':lebar(1.6,10.5) }, layout:{ 'line-cap':'round','line-join':'round' } },
+
+    { id:'casing-lokal', type:'line', source:'sb', 'source-layer':'streets',
+      filter:['in',['get','kind'],'residential','unclassified','living_street'],
+      paint:{ 'line-color':'#D5D5CB', 'line-width':lebar(1.6,9) }, layout:{ 'line-cap':'round','line-join':'round' } },
+    { id:'isi-lokal', type:'line', source:'sb', 'source-layer':'streets',
+      filter:['in',['get','kind'],'residential','unclassified','living_street'],
+      paint:{ 'line-color':'#FFFFFF', 'line-width':lebar(1,7.2) }, layout:{ 'line-cap':'round','line-join':'round' } },
+
+    { id:'jalan-servis', type:'line', source:'sb', 'source-layer':'streets', minzoom:14,
+      filter:['==',['get','kind'],'service'],
+      paint:{ 'line-color':'#FFFFFF', 'line-width':lebar(0.8,4.5) }, layout:{ 'line-cap':'round','line-join':'round' } },
+
+    // ===== Label =====
+    { id:'label-air', type:'symbol', source:'sb', 'source-layer':'water_lines_labels', minzoom:13,
+      filter:['has','name'],
+      layout:{ 'text-field':['get','name'], 'text-font':FONT_I, 'text-size':11,
+               'symbol-placement':'line', 'text-letter-spacing':0.08 },
+      paint:{ 'text-color':'#6E9DC5', 'text-halo-color':'#EAF4FC', 'text-halo-width':1.2 } },
+
+    { id:'label-jalan-besar', type:'symbol', source:'sb', 'source-layer':'street_labels',
+      filter:['in',['get','kind'],'motorway','trunk','primary','secondary','tertiary'],
+      layout:{ 'text-field':['get','name'], 'text-font':FONT_R,
+               'text-size':['interpolate',['linear'],['zoom'],13,10.5,18,13],
+               'symbol-placement':'line', 'text-rotation-alignment':'map' },
+      paint:{ 'text-color':'#55534A', 'text-halo-color':'#FFFFFF', 'text-halo-width':1.4 } },
+
+    { id:'label-jalan-lokal', type:'symbol', source:'sb', 'source-layer':'street_labels', minzoom:15,
+      filter:['in',['get','kind'],'residential','unclassified','living_street','service'],
+      layout:{ 'text-field':['get','name'], 'text-font':FONT_R,
+               'text-size':['interpolate',['linear'],['zoom'],15,9.5,19,12],
+               'symbol-placement':'line', 'text-rotation-alignment':'map' },
+      paint:{ 'text-color':'#7A786C', 'text-halo-color':'#FFFFFF', 'text-halo-width':1.3 } },
+
+    { id:'label-poi', type:'symbol', source:'sb', 'source-layer':'pois', minzoom:16,
+      filter:['has','name'],
+      layout:{ 'text-field':['get','name'], 'text-font':FONT_R, 'text-size':10,
+               'text-anchor':'top', 'text-offset':[0,0.4], 'text-max-width':8 },
+      paint:{ 'text-color':'#96917F', 'text-halo-color':'#F7F7F1', 'text-halo-width':1.1 } },
+
+    { id:'label-tempat', type:'symbol', source:'sb', 'source-layer':'place_labels',
+      filter:['in',['get','kind'],'suburb','neighbourhood','quarter','village','town','city','state_capital'],
+      layout:{ 'text-field':['get','name'], 'text-font':FONT_B,
+               'text-size':['interpolate',['linear'],['zoom'],11,12,16,17],
+               'text-letter-spacing':0.06, 'text-transform':'uppercase', 'text-max-width':10 },
+      paint:{ 'text-color':'#3E3C34', 'text-halo-color':'#F2F2EC', 'text-halo-width':1.6 } },
+  ]
+};
+
+const styleCarto = {
+  version: 8,
+  glyphs: GLYPHS,
+  sources: {
+    carto: { type:'raster', tileSize:256, maxzoom:20,
+      tiles:['https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+             'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+             'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+             'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
+      attribution:'© OpenStreetMap contributors © CARTO' }
+  },
+  layers: [ { id:'carto', type:'raster', source:'carto' } ]
+};
+
+let map;
+try {
+  map = new maplibregl.Map({
+    container: 'map',
+    style: styleApple,
+    center: [98.6722, 3.5952],   // Medan — Lapangan Merdeka
+    zoom: 15.2,
+    attributionControl: { compact: true }
+  });
+} catch(e) {
+  __diag('Peta gagal dimulai: ' + e.message + ' — buka tautan halamannya di Chrome.');
+  throw e;
+}
+map.on('error', function(e){
+  if (e && e.error) __diag('Sumber peta bermasalah: ' + (e.error.message || e.error));
+});
+map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'bottom-right');
+
+const chipA = document.getElementById('chipApple');
+const chipC = document.getElementById('chipCarto');
+chipA.onclick = () => { map.setStyle(styleApple); chipA.classList.add('aktif'); chipC.classList.remove('aktif'); };
+chipC.onclick = () => { map.setStyle(styleCarto); chipC.classList.add('aktif'); chipA.classList.remove('aktif'); };
+</script>
+</body>
+</html>
