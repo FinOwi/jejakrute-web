@@ -69,7 +69,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
 <script src="assets/auth.js?v=20261027-4"></script>
 <script src="assets/badge-data.js"></script>
-<script src="assets/member.js?v=20261105-4"></script>
+<script src="assets/member.js?v=20261105-5"></script>
 <script>
 (function () {
   "use strict";
@@ -377,6 +377,27 @@
       document.getElementById("editMsg").textContent = "";
       openSheet(editSheet);
     }
+    /* Unggah foto profil/sampul ke R2 lebih dulu (mode warisan via
+       Worker); true bila mendarat di R2. Pemanggil jatuh ke bucket
+       Supabase bila false — pembaca memakai domain R2, salinan
+       jatuh-balik disapu saat fase pembersihan Storage. */
+    async function unggahFotoProfilR2(path, file) {
+      try {
+        var sess = await c.auth.getSession();
+        var token = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
+        if (!token) return false;
+        var r = await fetch("https://video-api.jejakrute.my.id/unggah", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({ ember: "publik", kunci: path })
+        });
+        var j = {};
+        try { j = await r.json(); } catch (_) {}
+        if (!r.ok || !j.url) return false;
+        var put = await fetch(j.url, { method: "PUT", headers: { "Content-Type": file.type || "image/jpeg" }, body: file });
+        return put.ok;
+      } catch (_) { return false; }
+    }
     var editForm = document.getElementById("editProfileForm");
     editForm.addEventListener("submit", async function (e) {
       e.preventDefault();
@@ -406,15 +427,19 @@
         if (avatarFile) {
           if (!avatarFile.type || avatarFile.type.indexOf("image/") !== 0) throw new Error("Foto profil harus berupa gambar.");
           var avatarPath = me + "/avatar-" + Date.now() + ".jpg";
-          var up = await c.storage.from("media").upload(avatarPath, avatarFile, { contentType: avatarFile.type, upsert: false });
-          if (up.error) throw up.error;
+          if (!await unggahFotoProfilR2(avatarPath, avatarFile)) {
+            var up = await c.storage.from("media").upload(avatarPath, avatarFile, { contentType: avatarFile.type, upsert: false });
+            if (up.error) throw up.error;
+          }
           payload.avatar_path = avatarPath;
         }
         if (coverFile) {
           if (!coverFile.type || coverFile.type.indexOf("image/") !== 0) throw new Error("Foto sampul harus berupa gambar.");
           var coverPath = me + "/cover-" + Date.now() + ".jpg";
-          var up2 = await c.storage.from("media").upload(coverPath, coverFile, { contentType: coverFile.type, upsert: false });
-          if (up2.error) throw up2.error;
+          if (!await unggahFotoProfilR2(coverPath, coverFile)) {
+            var up2 = await c.storage.from("media").upload(coverPath, coverFile, { contentType: coverFile.type, upsert: false });
+            if (up2.error) throw up2.error;
+          }
           payload.cover_path = coverPath;
         }
         var upd = await c.from("profiles").update(payload).eq("id", me);

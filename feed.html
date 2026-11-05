@@ -133,7 +133,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
 <script src="assets/auth.js?v=20261027-4"></script>
 <script src="assets/badge-data.js"></script>
-<script src="assets/member.js?v=20261105-4"></script>
+<script src="assets/member.js?v=20261105-5"></script>
 <script>
 (function () {
   "use strict";
@@ -371,8 +371,18 @@
        ekstensinya, kuota, jaringan) mengembalikan false — pemanggil
        jatuh ke bucket Supabase seperti jalur lama. */
     async function unggahMediaR2(kunci, blob) {
-      try { await unggahR2("publik", kunci, blob); return true; }
+      try { await unggahR2Warisan("publik", kunci, blob); return true; }
       catch (e) { return false; }
+    }
+    /* Mode warisan (Nov 2026): /unggah TANPA ukuran, tanpa reservasi
+       & tanpa /konfirmasi — jalur berukuran menolak foto .jpg di
+       atas 1 MB (cap RPC reservasi). Khusus foto/GPX; video tetap
+       memakai unggahR2 berukuran. */
+    async function unggahR2Warisan(ember, kunci, blob) {
+      var j = await workerCall("/unggah", { ember: ember, kunci: kunci });
+      if (!j.url) throw new Error("Gerbang berkas tidak memberi URL unggah.");
+      var put = await fetch(j.url, { method: "PUT", headers: { "Content-Type": blob.type || "application/octet-stream" }, body: blob });
+      if (!put.ok) throw new Error("Unggah ke penyimpanan gagal (kode " + put.status + ").");
     }
     async function unggahR2(ember, kunci, blob) {
       var j = await workerCall("/unggah", { ember: ember, kunci: kunci, ukuran: blob.size });

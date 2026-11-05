@@ -5,12 +5,12 @@
 const SB_URL = "https://qykzrcygsyeznzmsdohp.supabase.co";
 // anon key publik-by-design (sama seperti yang tertanam di aplikasi Android)
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5a3pyY3lnc3llem56bXNkb2hwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NDM3MjAsImV4cCI6MjEwODQxOTcyMH0.T4y-jdD9OJK8LSNE26mydKXWDzCKoIeCy_BBvm57LlA";
-const APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.38.0/JEJAKRUTE-v0.38.0-universal.apk";
+const APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.39.0/JEJAKRUTE-v0.39.0-universal.apk";
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function fmtTgl(iso){if(!iso)return"—";const d=new Date(iso);return d.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})}
 function fmtKm(v){if(v==null)return"—";return Number(v).toFixed(1).replace(".",",")+" km"}
-function gpxUrl(path){return SB_URL+"/storage/v1/object/public/media/"+path.split("/").map(encodeURIComponent).join("/")}
+function gpxUrl(path){return "https://media.jejakrute.my.id/"+path.split("/").map(encodeURIComponent).join("/")}
 
 async function sbGet(path){
   const r=await fetch(SB_URL+"/rest/v1/"+path,{headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY}});

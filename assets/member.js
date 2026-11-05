@@ -11,7 +11,7 @@
              string path .gpx polos juga valid (warisan web ronde 1). */
 (function () {
   "use strict";
-  var APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.38.0/JEJAKRUTE-v0.38.0-universal.apk";
+  var APK_URL = "https://github.com/FinOwi/jejakrute/releases/download/v0.39.0/JEJAKRUTE-v0.39.0-universal.apk";
   function ic(paths, filled) {
     return '<svg viewBox="0 0 24 24" fill="' + (filled ? "currentColor" : "none") + '" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
   }
@@ -44,7 +44,17 @@
   function session() { return window.jr ? window.jr.session() : null; }
   function authProfile() { return window.jr ? window.jr.profile() : null; }
   function baseUrl() { return window.jr ? window.jr.baseUrl : ""; }
+  /* Sejak migrasi R2 (Nov 2026): berkas non-postingan (avatar,
+     sampul, GPX rute) dibaca dari domain media R2 — berkas lama
+     sudah disalin dengan path yang sama persis. */
   function mediaUrl(path) {
+    if (!path) return "";
+    if (/^https?:\/\//i.test(path)) return path;
+    return r2Url(path);
+  }
+  /* URL bucket media Supabase — hanya untuk item postingan lama
+     tanpa tanda r2 (atau hasil jalur jatuh-balik). */
+  function mediaUrlSupabase(path) {
     if (!path) return "";
     if (/^https?:\/\//i.test(path)) return path;
     return baseUrl() + "/storage/v1/object/public/media/" + String(path).split("/").map(encodeURIComponent).join("/");
@@ -62,7 +72,7 @@
      Supabase seperti berkas lama. */
   function itemUrl(item) {
     if (!item) return "";
-    return item.r2 ? r2Url(item.path) : mediaUrl(item.path);
+    return item.r2 ? r2Url(item.path) : mediaUrlSupabase(item.path);
   }
   /* Isi src/poster semua elemen data-privat-* di root dengan URL
      bertanda tangan Worker (ember privat hanya bisa dibaca begitu;
@@ -1029,6 +1039,7 @@
     authProfile: authProfile,
     baseUrl: baseUrl,
     mediaUrl: mediaUrl,
+    mediaUrlSupabase: mediaUrlSupabase,
     itemUrl: itemUrl,
     r2Url: r2Url,
     mediaItems: mediaItems,
