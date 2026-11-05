@@ -67,12 +67,13 @@
     if (!key) return "";
     return R2_MEDIA + "/" + String(key).split("/").map(encodeURIComponent).join("/");
   }
-  /* URL tampil satu item media ternormalisasi: item bertanda r2
-     (foto/GPX/video di R2) memakai domain media; sisanya bucket
-     Supabase seperti berkas lama. */
+  /* URL tampil satu item media ternormalisasi: SEMUA berkas
+     postingan kini di R2 — berkas lama sudah disalin dengan path
+     sama persis dan salinan Supabase-nya sudah dihapus (6 Nov
+     2026), jadi tanda r2 tidak lagi membedakan sumber. */
   function itemUrl(item) {
     if (!item) return "";
-    return item.r2 ? r2Url(item.path) : mediaUrlSupabase(item.path);
+    return r2Url(item.path);
   }
   /* Isi src/poster semua elemen data-privat-* di root dengan URL
      bertanda tangan Worker (ember privat hanya bisa dibaca begitu;
