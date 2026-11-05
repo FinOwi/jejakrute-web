@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/member.css?v=20261105-3">
+<link rel="stylesheet" href="assets/member.css?v=20261105-4">
 <style>
 /* Sistem Badge profil — gaya kritis sejajar halaman (anti cache CSS lama) */
 .badge-pill img.bp-img,.badge-chip img.bp-img{width:16px;height:16px;border-radius:50%;margin-right:4px;vertical-align:-3px}
@@ -69,7 +69,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
 <script src="assets/auth.js?v=20261027-4"></script>
 <script src="assets/badge-data.js"></script>
-<script src="assets/member.js?v=20261105-3"></script>
+<script src="assets/member.js?v=20261105-4"></script>
 <script>
 (function () {
   "use strict";
@@ -112,7 +112,7 @@
     }
     var inner;
     if (post.jenis === "foto" && photos.length) {
-      inner = '<img src="' + K.esc(K.mediaUrl(photos[0].path)) + '" alt="" loading="lazy">';
+      inner = '<img src="' + K.esc(K.itemUrl(photos[0])) + '" alt="" loading="lazy">';
     } else if (post.jenis === "gpx") {
       inner = '<span class="tile-replay"><span class="rp-play">' + K.icons.play + '</span>Replay</span>';
     } else if (post.jenis === "video") {

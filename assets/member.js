@@ -57,6 +57,13 @@
     if (!key) return "";
     return R2_MEDIA + "/" + String(key).split("/").map(encodeURIComponent).join("/");
   }
+  /* URL tampil satu item media ternormalisasi: item bertanda r2
+     (foto/GPX/video di R2) memakai domain media; sisanya bucket
+     Supabase seperti berkas lama. */
+  function itemUrl(item) {
+    if (!item) return "";
+    return item.r2 ? r2Url(item.path) : mediaUrl(item.path);
+  }
   /* Isi src/poster semua elemen data-privat-* di root dengan URL
      bertanda tangan Worker (ember privat hanya bisa dibaca begitu;
      token = sesi web yang sama dengan aplikasi). Menangani kartu
@@ -141,14 +148,14 @@
         }
         if (x.gpx) {
           return {
-            type: "gpx", path: String(x.gpx), w: 0, h: 0, idx: idx,
+            type: "gpx", path: String(x.gpx), r2: x.r2 === true, w: 0, h: 0, idx: idx,
             judul: x.judul || "", km: Number(x.km || 0),
             dur: Number(x.dur || 0), naik: Number(x.naik || 0)
           };
         }
         var p = x.p || x.path || x.url || x.src || "";
         if (!p) return null;
-        return { type: jenis === "video" ? "video" : "foto", path: String(p), w: Number(x.w || 0), h: Number(x.h || 0), idx: idx };
+        return { type: jenis === "video" ? "video" : "foto", path: String(p), r2: x.r2 === true, w: Number(x.w || 0), h: Number(x.h || 0), idx: idx };
       }
       return null;
     }).filter(Boolean);
@@ -417,7 +424,7 @@
     if (!items.length) return "";
     var ratio = galleryRatio(items[0]);
     var slides = items.map(function (it, i) {
-      return '<figure class="gal-slide"><img src="' + esc(mediaUrl(it.path)) + '" alt="Foto postingan ' + (i + 1) + " dari " + items.length + '" loading="lazy"></figure>';
+      return '<figure class="gal-slide"><img src="' + esc(itemUrl(it)) + '" alt="Foto postingan ' + (i + 1) + " dari " + items.length + '" loading="lazy"></figure>';
     }).join("");
     var chrome = items.length > 1
       ? '<span class="gal-count" data-gal-count>1/' + items.length + '</span><div class="gal-dots" data-gal-dots>' +
@@ -479,7 +486,7 @@
       var item = post ? replayItemOf(post) : null;
       if (!item) { if (statsEl) statsEl.textContent = "Statistik tidak tersedia."; return; }
       try {
-        var a = await loadGPX(mediaUrl(item.path));
+        var a = await loadGPX(itemUrl(item));
         var canvas = card.querySelector("[data-rp-spark]");
         if (canvas) drawSpark(canvas, a, 1);
         var parts = [fmtKm2(a.distanceKm)];
@@ -1022,6 +1029,7 @@
     authProfile: authProfile,
     baseUrl: baseUrl,
     mediaUrl: mediaUrl,
+    itemUrl: itemUrl,
     r2Url: r2Url,
     mediaItems: mediaItems,
     resolvePrivateVideos: resolvePrivateVideos,
