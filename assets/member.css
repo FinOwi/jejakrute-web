@@ -187,6 +187,21 @@ body[data-member-page="profil"] .member-main{max-width:760px}
 .preply-chip button{background:none;border:0;color:var(--mut);font-size:13px;cursor:pointer;padding:0;line-height:1}
 .comment-acts{display:flex;gap:14px;align-items:center;margin-top:4px}
 .comment-replies{margin-left:52px}
+.room-msgs{display:flex;flex-direction:column;gap:8px;max-height:55vh;overflow-y:auto;padding:6px 2px}
+.rmsg{max-width:82%;padding:8px 11px;border-radius:14px;background:rgba(255,255,255,.06);font-size:13.5px;line-height:1.5;align-self:flex-start;overflow-wrap:anywhere}
+.rmsg.mine{align-self:flex-end;background:rgba(23,206,143,.16)}
+.rmsg-meta{display:block;font-size:11px;color:var(--mut);margin-bottom:2px}
+.rmsg a{color:var(--mint)}
+.rmsg-sys{align-self:center;font-size:11.5px;color:var(--mut);text-align:center;padding:2px 8px}
+.room-form{display:flex;gap:8px;margin-top:12px}
+.room-form input{flex:1}
+.canvas-editor{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:60;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:18px 10px}
+.canvas-editor[hidden]{display:none}
+.canvas-box{background:#1D2025;border:1px solid var(--line);border-radius:16px;padding:14px;max-width:560px;width:100%}
+.canvas-box canvas{width:100%;height:auto;border-radius:10px;background:#000;touch-action:none}
+.canvas-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.canvas-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.canvas-tools input[type="text"]{flex:1;min-width:160px}
 .pcomment-form{display:flex;gap:8px;margin-top:9px}
 .pcomment-form input{flex:1;min-width:0;background:var(--card2);border:1px solid transparent;border-radius:12px;padding:9px 12px;color:var(--txt);font-size:12.5px}
 .pcomment-form input:focus{outline:2px solid var(--mint);outline-offset:0}

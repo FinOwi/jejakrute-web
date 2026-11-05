@@ -929,14 +929,24 @@
   }
 
   /* ---------- Notifikasi: selalu dibaca dari server ---------- */
-  function notifText(n) {
+  /* Kalimat notifikasi disamakan dengan aplikasi (kalimatNotifikasi):
+     jenis yang sama, bunyi yang sama. */
+  function notifSentence(n, actorName) {
+    var aktor = actorName || "Seseorang";
     switch (n.jenis) {
-      case "suka": return "menyukai postinganmu.";
-      case "komentar": return "mengomentari postinganmu.";
-      case "pengikut": return "mulai mengikutimu.";
-      case "moderasi": return "mengirim pembaruan moderasi untuk kontenmu.";
-      case "tenggat": return "mengirim pengingat batas waktu turun.";
-      default: return "mengirim notifikasi baru.";
+      case "suka": return aktor + " menyukai postinganmu";
+      case "komentar": return aktor + " mengomentari postinganmu";
+      case "bagikan": return aktor + " membagikan postinganmu";
+      case "pengikut": return aktor + " mulai mengikutimu";
+      case "pengajuan": return aktor + " mengajukan ikut grup Mendaki Barengmu";
+      case "keputusan_disetujui": return "Pengajuanmu ke Mendaki Bareng disetujui — kamu masuk rombongan";
+      case "keputusan_ditolak": return "Pengajuanmu ke Mendaki Bareng ditolak pembuat ajakan";
+      case "rute_disetujui": return "Rute komunitasmu disetujui dan diterbitkan";
+      case "rute_ditolak": return "Rute komunitasmu belum lolos tinjauan moderator";
+      case "badge": return "Badge baru terbuka untukmu";
+      case "moderasi": return "Ada hasil tinjauan moderator untuk rute komunitasmu";
+      case "tenggat": return "Batas waktu turunmu terlewati — hubungi kontak daruratmu bila kamu belum turun";
+      default: return "Ada pemberitahuan baru untukmu";
     }
   }
   function notifHref(n, actor) {
@@ -969,7 +979,7 @@
         var a = actors.get(n.aktor);
         var href = notifHref(n, a);
         return '<a class="notif-item' + (n.dibaca ? "" : " unread") + '" href="' + esc(href) + '">' + avatarHTML(a, "small") +
-          '<span><strong>' + esc(displayName(a)) + "</strong> " + esc(notifText(n)) + "<small>" + esc(relTime(n.created_at)) + "</small></span></a>";
+          '<span>' + esc(notifSentence(n, displayName(a))) + "<small>" + esc(relTime(n.created_at)) + "</small></span></a>";
       }).join("");
     } catch (err) {
       list.innerHTML = '<div class="empty error">Notifikasi gagal dimuat: ' + esc(err.message || err) + "</div>";

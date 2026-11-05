@@ -41,6 +41,14 @@
 
   <section class="section">
     <div class="section-head">
+      <div><p class="kicker">di sekitarmu</p><h2>Terdekat dari Lokasimu</h2><p>Lima lokasi katalog paling dekat dari posisi perangkatmu — sama seperti modul Terdekat di aplikasi.</p></div>
+      <button class="btn ghost" type="button" id="nearestBtn">Gunakan Lokasiku</button>
+    </div>
+    <div id="nearestList"><div class="empty">Ketuk "Gunakan Lokasiku" untuk menghitung jarak ke lokasi-lokasi katalog.</div></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
       <div><p class="kicker">mendaki bareng</p><h2>Grup Terbuka</h2><p>Rencana dari server. Gabung mengirim permintaan berstatus menunggu persetujuan pembuat.</p></div>
       <button class="btn ghost" type="button" id="toggleGroupForm">Buat Grup</button>
     </div>
@@ -84,7 +92,7 @@
 <script src="assets/auth.js?v=20261027-4"></script>
 <script src="assets/app.js"></script>
 <script src="assets/katalog-data.js"></script>
-<script src="assets/member.js?v=20261105-2"></script>
+<script src="assets/member.js?v=20261105-3"></script>
 <script>
 (function () {
   "use strict";
@@ -123,8 +131,8 @@
         var approved = memberships.filter(function (m) { return m.group_id === g.id && m.status === "disetujui"; }).length;
         var creator = creators.get(g.user_id) || { nama: "Pendaki" };
         var action;
-        if (g.user_id === me) action = '<button class="btn plain sm" type="button" disabled>Grup Saya</button>';
-        else if (mine && mine.status === "disetujui") action = '<button class="btn plain sm" type="button" disabled>Sudah Bergabung</button>';
+        if (g.user_id === me) action = '<a class="btn sm" href="room.html?id=' + K.esc(g.id) + '">Buka Room</a>';
+        else if (mine && mine.status === "disetujui") action = '<a class="btn sm" href="room.html?id=' + K.esc(g.id) + '">Buka Room</a>';
         else if (mine && mine.status === "menunggu") action = '<button class="btn plain sm" type="button" disabled>Menunggu Persetujuan</button>';
         else if (mine && mine.status === "ditolak") action = '<button class="btn plain sm" type="button" disabled>Permintaan Ditolak</button>';
         else action = '<button class="btn sm" type="button" data-join-group="' + K.esc(g.id) + '">Gabung</button>';
@@ -154,7 +162,9 @@
       var mineRows = Array.from(byId.values());
       myGroupsEl.innerHTML = mineRows.length ? '<div class="trip-grid">' + mineRows.map(function (r) {
         var g = r.group;
-        return '<article class="trip-card"><h3>' + K.esc(g.judul || "Mendaki Bareng") + '</h3><p class="meta-line">' + K.esc(groupMeta(g)) + '</p><p class="meta-line">Status grup: ' + K.esc(g.status || "—") + ' · Peran saya: ' + K.esc(r.role) + '</p></article>';
+        var canRoom = r.role === "Pembuat" || r.role.indexOf("disetujui") !== -1;
+        return '<article class="trip-card"><h3>' + K.esc(g.judul || "Mendaki Bareng") + '</h3><p class="meta-line">' + K.esc(groupMeta(g)) + '</p><p class="meta-line">Status grup: ' + K.esc(g.status || "—") + ' · Peran saya: ' + K.esc(r.role) + '</p>' +
+          (canRoom ? '<div class="form-actions" style="margin-top:13px"><a class="btn sm" href="room.html?id=' + K.esc(g.id) + '">Buka Room</a></div>' : "") + '</article>';
       }).join("") + '</div>' : '<div class="empty">Kamu belum membuat atau mengikuti grup Mendaki Bareng.</div>';
     }
 
@@ -246,6 +256,29 @@
         msg.textContent = "Pencarian gagal: " + (err.message || err);
       }
     }
+    document.getElementById("nearestBtn").addEventListener("click", function () {
+      var el = document.getElementById("nearestList");
+      if (!navigator.geolocation) { el.innerHTML = '<div class="empty">Peramban ini tidak mendukung geolokasi.</div>'; return; }
+      el.innerHTML = '<p class="loading">Mencari lokasimu…</p>';
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        var la = pos.coords.latitude, lo = pos.coords.longitude;
+        function hav(lat1, lon1, lat2, lon2) {
+          var R = 6371, p = Math.PI / 180;
+          var a = Math.pow(Math.sin((lat2 - lat1) * p / 2), 2) + Math.cos(lat1 * p) * Math.cos(lat2 * p) * Math.pow(Math.sin((lon2 - lon1) * p / 2), 2);
+          return 2 * R * Math.asin(Math.sqrt(a));
+        }
+        var rows = (window.KATALOG || []).filter(function (x) { return typeof x.lat === "number" && typeof x.lng === "number"; })
+          .map(function (x) { return { x: x, km: hav(la, lo, x.lat, x.lng) }; })
+          .sort(function (a, b) { return a.km - b.km; }).slice(0, 5);
+        el.innerHTML = rows.length ? '<div class="catalog-grid">' + rows.map(function (r) {
+          var x = r.x;
+          return '<a class="catalog-card" href="lokasi.html?id=' + encodeURIComponent(x.id) + '" style="text-decoration:none;color:var(--txt)"><h3>' + K.esc(x.nama) + '</h3><p class="meta-line">' + K.esc(x.kabupaten_kota || "") + ' · ' + K.esc(x.provinsi || "") + '</p><p class="meta-line">± ' + (r.km < 10 ? Math.round(r.km * 10) / 10 : Math.round(r.km)) + ' km dari lokasimu' + (x.ketinggian_mdpl ? ' · ' + K.fmtNum(x.ketinggian_mdpl) + ' mdpl' : '') + '</p></a>';
+        }).join("") + "</div>" : '<div class="empty">Katalog tidak memiliki koordinat untuk dibandingkan.</div>';
+      }, function () {
+        el.innerHTML = '<div class="empty">Izin lokasi tidak diberikan — daftar terdekat tidak bisa dihitung.</div>';
+      }, { timeout: 10000, maximumAge: 60000 });
+    });
+
     document.getElementById("searchForm").addEventListener("submit", function (e) { e.preventDefault(); runSearch(); });
     document.getElementById("searchInput").addEventListener("input", function () {
       clearTimeout(searchTimer);

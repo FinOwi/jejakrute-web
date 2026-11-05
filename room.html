@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Room Mendaki Bareng — JEJAKRUTE</title>
+<meta name="description" content="Room chat rombongan Mendaki Bareng JEJAKRUTE — terbuka untuk pembuat dan anggota yang sudah disetujui, sama seperti di aplikasi.">
+<link rel="icon" href="assets/logo/favicon.ico" sizes="48x48">
+<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/logo/apple-touch-icon.png">
+<link rel="manifest" href="assets/logo/site.webmanifest">
+<meta name="theme-color" content="#17191C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/member.css?v=20261105-3">
+</head>
+<body data-member-page="jelajah">
+<div data-member-shell></div>
+
+<main class="member-main" data-member-main hidden>
+  <p><a href="jelajah.html">← Kembali ke Jelajah</a></p>
+  <section class="card" id="roomHead"><p class="loading">Memuat grup dari server…</p></section>
+  <section class="card" id="roomBody" hidden style="margin-top:16px">
+    <div class="room-msgs" id="roomMsgs"><p class="loading">Memuat pesan…</p></div>
+    <form class="room-form" id="roomForm">
+      <input id="roomText" maxlength="1000" placeholder="Tulis pesan ke rombongan…" autocomplete="off" aria-label="Tulis pesan">
+      <button class="btn ghost" type="button" id="roomLoc">Bagikan Lokasi</button>
+      <button class="btn" type="submit">Kirim</button>
+    </form>
+    <p class="small error" id="roomMsg" style="margin-top:9px"></p>
+  </section>
+  <section class="card" id="roomGate" hidden style="margin-top:16px"></section>
+</main>
+
+<section class="member-lock" data-member-lock hidden></section>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script src="assets/auth.js?v=20261027-4"></script>
+<script src="assets/member.js?v=20261105-3"></script>
+<script>
+(function () {
+  "use strict";
+  var K = window.MemberKit;
+  var groupId = new URLSearchParams(location.search).get("id");
+  var head = document.getElementById("roomHead");
+  var body = document.getElementById("roomBody");
+  var gate = document.getElementById("roomGate");
+  var msgsEl = document.getElementById("roomMsgs");
+
+  async function mulai() {
+    var ctx = await K.ready();
+    if (!ctx) return;
+    var c = ctx.client, me = ctx.session.user.id;
+    if (!groupId) { head.innerHTML = '<div class="empty error">Tautan room tidak memiliki ID grup.</div>'; return; }
+
+    var gRes = await c.from("trip_groups").select("*").eq("id", groupId).single();
+    if (gRes.error) { head.innerHTML = '<div class="empty error">Grup gagal dimuat dari server: ' + K.esc(gRes.error.message || gRes.error) + "</div>"; return; }
+    var g = gRes.data;
+    var creator = (await K.profilesByIds([g.user_id])).get(g.user_id) || { nama: "Pendaki" };
+    var meta = [g.lokasi_nama, g.tanggal_teks, g.level].filter(Boolean).join(" · ");
+    head.innerHTML = '<p class="kicker">room mendaki bareng</p><h2 style="margin:2px 0 6px">' + K.esc(g.judul || "Mendaki Bareng") + "</h2>" +
+      '<p class="meta-line">' + K.esc(meta) + "</p>" +
+      (g.titik_kumpul ? '<p class="meta-line">Titik kumpul: ' + K.esc(g.titik_kumpul) + "</p>" : "") +
+      '<p class="meta-line">Dibuat oleh <a href="' + K.esc(K.profileLink(creator)) + '">' + K.esc(K.displayName(creator)) + "</a> · Kuota " + K.fmtNum(g.kuota || 0) + "</p>";
+
+    var isCreator = g.user_id === me;
+    var myStatus = null;
+    if (!isCreator) {
+      var mRes = await c.from("trip_members").select("status").eq("group_id", groupId).eq("user_id", me);
+      if (!mRes.error && mRes.data && mRes.data.length) myStatus = mRes.data[0].status;
+    }
+    var bolehMasuk = isCreator || myStatus === "disetujui";
+
+    if (!bolehMasuk) {
+      gate.hidden = false;
+      if (myStatus === "menunggu") {
+        gate.innerHTML = '<div class="empty">Pengajuanmu masih <strong>menunggu persetujuan</strong> pembuat ajakan. Room terbuka dan kamu bisa mengirim pesan begitu pengajuanmu disetujui — sama seperti di aplikasi.</div>';
+      } else if (myStatus === "ditolak") {
+        gate.innerHTML = '<div class="empty">Pengajuanmu ke grup ini ditolak pembuat ajakan, jadi room tidak terbuka untukmu.</div>';
+      } else {
+        gate.innerHTML = '<div class="empty">Room hanya untuk pembuat dan anggota yang sudah disetujui.</div>' +
+          '<div class="form-actions" style="margin-top:12px"><button class="btn" type="button" id="gateJoin">Ajukan Ikut Grup</button></div>';
+        document.getElementById("gateJoin").addEventListener("click", async function () {
+          this.disabled = true;
+          var res = await c.from("trip_members").insert({ group_id: groupId, user_id: me, status: "menunggu" });
+          if (res.error) { K.toast("Pengajuan gagal: " + (res.error.message || res.error)); this.disabled = false; return; }
+          K.toast("Pengajuan terkirim — menunggu persetujuan pembuat ajakan.");
+          gate.innerHTML = '<div class="empty">Pengajuanmu masih <strong>menunggu persetujuan</strong> pembuat ajakan. Room terbuka dan kamu bisa mengirim pesan begitu pengajuanmu disetujui — sama seperti di aplikasi.</div>';
+        });
+      }
+      return;
+    }
+
+    body.hidden = false;
+    var lastKey = "";
+    var authorCache = new Map();
+    async function renderMsgs(scroll) {
+      var res = await c.from("room_messages").select("id,group_id,user_id,jenis,isi,lat,lng,created_at").eq("group_id", groupId).order("created_at", { ascending: true }).limit(500);
+      if (res.error) throw res.error;
+      var rows = res.data || [];
+      var key = rows.length + ":" + (rows.length ? rows[rows.length - 1].id : "");
+      if (key === lastKey) return;
+      lastKey = key;
+      var ids = Array.from(new Set(rows.filter(function (r) { return r.user_id; }).map(function (r) { return r.user_id; })));
+      var fresh = ids.filter(function (id) { return !authorCache.has(id); });
+      if (fresh.length) {
+        var got = await K.profilesByIds(fresh);
+        got.forEach(function (v, k) { authorCache.set(k, v); });
+      }
+      var nearBottom = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 140;
+      msgsEl.innerHTML = rows.length ? rows.map(function (m) {
+        if (m.jenis === "sistem") return '<div class="rmsg-sys">' + K.esc(m.isi || "") + "</div>";
+        var a = authorCache.get(m.user_id) || { nama: "Pendaki" };
+        var mine = m.user_id === me;
+        var inner = '<span class="rmsg-meta">' + K.esc(mine ? "Kamu" : K.displayName(a)) + " · " + K.esc(K.relTime(m.created_at)) + "</span>" + K.esc(m.isi || "");
+        if (m.jenis === "lokasi" && typeof m.lat === "number" && typeof m.lng === "number") {
+          inner += '<br><a href="https://www.google.com/maps?q=' + encodeURIComponent(m.lat + "," + m.lng) + '" target="_blank" rel="noopener">Lihat di Peta</a>';
+        }
+        return '<div class="rmsg' + (mine ? " mine" : "") + '">' + inner + "</div>";
+      }).join("") : '<div class="empty">Belum ada pesan. Mulai obrolan rombongan ini.</div>';
+      if (scroll || nearBottom) msgsEl.scrollTop = msgsEl.scrollHeight;
+    }
+    try { await renderMsgs(true); }
+    catch (err) { msgsEl.innerHTML = '<div class="empty error">Pesan gagal dimuat: ' + K.esc(err.message || err) + "</div>"; }
+    setInterval(function () { renderMsgs(false).catch(function () { /* polling senyap */ }); }, 5000);
+
+    var form = document.getElementById("roomForm");
+    var msgEl = document.getElementById("roomMsg");
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var input = document.getElementById("roomText");
+      var isi = input.value.trim();
+      if (!isi) return;
+      var btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true; msgEl.textContent = "";
+      try {
+        var res = await c.from("room_messages").insert({ group_id: groupId, user_id: me, jenis: "teks", isi: isi });
+        if (res.error) throw res.error;
+        input.value = "";
+        lastKey = "";
+        await renderMsgs(true);
+      } catch (err) {
+        msgEl.textContent = "Pesan gagal dikirim: " + (err.message || err);
+      } finally { btn.disabled = false; }
+    });
+    document.getElementById("roomLoc").addEventListener("click", function () {
+      var btn = this;
+      if (!navigator.geolocation) { msgEl.textContent = "Peramban ini tidak mendukung geolokasi."; return; }
+      btn.disabled = true; msgEl.textContent = "";
+      navigator.geolocation.getCurrentPosition(async function (pos) {
+        var lat = pos.coords.latitude, lng = pos.coords.longitude;
+        try {
+          var res = await c.from("room_messages").insert({
+            group_id: groupId, user_id: me, jenis: "lokasi",
+            isi: "Membagikan titik lokasi: " + lat.toFixed(5) + ", " + lng.toFixed(5),
+            lat: lat, lng: lng
+          });
+          if (res.error) throw res.error;
+          lastKey = "";
+          await renderMsgs(true);
+        } catch (err) { msgEl.textContent = "Titik lokasi gagal dibagikan: " + (err.message || err); }
+        btn.disabled = false;
+      }, function () { msgEl.textContent = "Izin lokasi tidak diberikan."; btn.disabled = false; }, { timeout: 10000 });
+    });
+  }
+  mulai();
+})();
+</script>
+</body>
+</html>

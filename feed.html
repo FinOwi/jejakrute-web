@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/member.css?v=20261105-2">
+<link rel="stylesheet" href="assets/member.css?v=20261105-3">
 </head>
 <body data-member-page="feed">
 <div data-member-shell></div>
@@ -27,7 +27,7 @@
     <div class="section-head" style="margin-bottom:0">
       <div>
         <h2>Buat Postingan</h2>
-        <p>Pilih Foto atau Replay dari berkasmu.</p>
+        <p>Pilih Foto, Replay, atau Video dari berkasmu.</p>
       </div>
       <button class="btn" type="button" id="toggleComposer">Buat Postingan</button>
     </div>
@@ -35,6 +35,7 @@
     <div class="composer-choices">
       <button class="choice-btn" type="button" data-choice="foto"><strong>Foto</strong><span>Unggah satu atau beberapa gambar dari perangkatmu.</span></button>
       <button class="choice-btn" type="button" data-choice="replay"><strong>Replay</strong><span>Unggah GPX; salinan publiknya diburamkan 200 meter di kedua ujung.</span></button>
+      <button class="choice-btn" type="button" data-choice="video"><strong>Video Replay</strong><span>Unggah video replay hasil ekspor dari aplikasi (MP4, maks 60 detik).</span></button>
     </div>
 
     <form class="member-form" id="fotoForm" hidden>
@@ -51,7 +52,32 @@
         <input id="fotoLokasi" type="text" maxlength="120" placeholder="mis. Gunung Sibayak">
       </div>
       <div class="form-actions">
+        <button class="btn ghost" type="button" id="fotoKanvasBtn">Edit di Kanvas</button>
         <button class="btn" type="submit">Terbitkan Foto</button>
+        <span class="small muted" data-form-msg></span>
+      </div>
+    </form>
+
+    <form class="member-form" id="videoForm" hidden>
+      <div>
+        <label for="videoFile">Berkas video (MP4)</label>
+        <input id="videoFile" type="file" accept="video/mp4,video/*" required>
+        <p class="small muted" style="margin-top:6px">Aturan yang sama dengan aplikasi: durasi maks 60 detik. Poster diambil otomatis dari bingkai video.</p>
+      </div>
+      <div>
+        <label for="videoCaption">Caption</label>
+        <textarea id="videoCaption" maxlength="2000" placeholder="Ceritakan momennya…"></textarea>
+      </div>
+      <div>
+        <label for="videoLokasi">Nama lokasi (opsional)</label>
+        <input id="videoLokasi" type="text" maxlength="120" placeholder="mis. Gunung Sibayak">
+      </div>
+      <div>
+        <label for="videoVis">Visibilitas</label>
+        <select id="videoVis"><option value="publik">Publik — siapa pun bisa menonton</option><option value="privat">Privat — hanya saya</option></select>
+      </div>
+      <div class="form-actions">
+        <button class="btn" type="submit">Terbitkan Video</button>
         <span class="small muted" data-form-msg></span>
       </div>
     </form>
@@ -84,6 +110,22 @@
   </div>
 
   <section id="feedList" aria-live="polite"><p class="loading">Memuat postingan dari server…</p></section>
+
+  <div class="canvas-editor" id="canvasEditor" hidden>
+    <div class="canvas-box">
+      <div class="canvas-head"><h3 style="margin:0">Mode Kanvas</h3><button class="btn ghost sm" type="button" id="canvasClose">Tutup</button></div>
+      <canvas id="canvasStage" width="1080" height="1350"></canvas>
+      <div class="canvas-tools">
+        <input id="canvasText" type="text" maxlength="60" placeholder="Teks untuk ditempel…">
+        <button class="btn sm" type="button" id="canvasAddText">Tambah Teks</button>
+        <label class="small">Warna <select id="canvasColor"><option value="#FFFFFF">Putih</option><option value="#17CE8F">Mint</option><option value="#17191C">Arang</option><option value="#FFD34D">Emas</option></select></label>
+        <label class="small">Ukuran <input id="canvasSize" type="range" min="28" max="120" value="64"></label>
+        <button class="btn ghost sm" type="button" id="canvasDelText">Hapus Teks Terpilih</button>
+        <button class="btn" type="button" id="canvasApply">Pakai Hasil Edit</button>
+      </div>
+      <p class="small muted" style="margin-top:8px">Ketuk teks untuk memilih, seret untuk memindahkannya. Hasil edit menggantikan foto pertama yang dipilih saat diterbitkan.</p>
+    </div>
+  </div>
 </main>
 
 <section class="member-lock" data-member-lock hidden></section>
@@ -91,7 +133,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
 <script src="assets/auth.js?v=20261027-4"></script>
 <script src="assets/badge-data.js"></script>
-<script src="assets/member.js?v=20261105-2"></script>
+<script src="assets/member.js?v=20261105-3"></script>
 <script>
 (function () {
   "use strict";
@@ -202,7 +244,10 @@
 
     var fotoForm = document.getElementById("fotoForm");
     var replayForm = document.getElementById("replayForm");
+    var videoForm = document.getElementById("videoForm");
     var composerPanel = document.getElementById("composerPanel");
+    var kanvasEditedFile = null;
+    document.getElementById("fotoFiles").addEventListener("change", function () { kanvasEditedFile = null; });
     document.getElementById("toggleComposer").addEventListener("click", function () {
       composerPanel.hidden = !composerPanel.hidden;
       this.textContent = composerPanel.hidden ? "Buat Postingan" : "Tutup Panel";
@@ -211,6 +256,7 @@
       btn.addEventListener("click", function () {
         fotoForm.hidden = btn.getAttribute("data-choice") !== "foto";
         replayForm.hidden = btn.getAttribute("data-choice") !== "replay";
+        videoForm.hidden = btn.getAttribute("data-choice") !== "video";
       });
     });
     function setMsg(form, msg) { var el = form.querySelector("[data-form-msg]"); if (el) el.textContent = msg || ""; }
@@ -231,6 +277,7 @@
       if (!files.length || files.some(function (f) { return !f.type || f.type.indexOf("image/") !== 0; })) {
         setMsg(fotoForm, "Pilih berkas gambar saja."); return;
       }
+      if (kanvasEditedFile) files[0] = kanvasEditedFile;
       var btn = fotoForm.querySelector('button[type="submit"]');
       btn.disabled = true; setMsg(fotoForm, "Mengunggah foto ke server…");
       try {
@@ -252,7 +299,7 @@
           media: mediaItems, status_moderasi: "tampil"
         });
         if (ins.error) throw ins.error;
-        fotoForm.reset(); fotoForm.hidden = true; composerPanel.hidden = true; document.getElementById("toggleComposer").textContent = "Buat Postingan";
+        fotoForm.reset(); kanvasEditedFile = null; fotoForm.hidden = true; composerPanel.hidden = true; document.getElementById("toggleComposer").textContent = "Buat Postingan";
         K.toast("Postingan foto diterbitkan dari server.");
         await renderFeed();
       } catch (err) {
@@ -295,6 +342,174 @@
       } catch (err) {
         setMsg(replayForm, "Gagal menerbitkan Replay: " + (err.message || err));
       } finally { btn.disabled = false; }
+    });
+
+    /* ===== Video Replay: jalur yang sama dengan aplikasi (Worker R2) ===== */
+    async function workerCall(path, payload) {
+      var sess = await c.auth.getSession();
+      var token = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
+      if (!token) throw new Error("Sesi masuk tidak ditemukan — masuk ulang dulu.");
+      var r = await fetch("https://video-api.jejakrute.my.id" + path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify(payload)
+      });
+      var j = {};
+      try { j = await r.json(); } catch (_) { /* jawaban kosong */ }
+      if (!r.ok) throw new Error(j.error || ("Gerbang video menolak (kode " + r.status + ")."));
+      return j;
+    }
+    async function unggahR2(ember, kunci, blob) {
+      var j = await workerCall("/unggah", { ember: ember, kunci: kunci, ukuran: blob.size });
+      if (!j.url) throw new Error("Gerbang video tidak memberi URL unggah.");
+      var put = await fetch(j.url, { method: "PUT", headers: { "Content-Type": blob.type || "application/octet-stream" }, body: blob });
+      if (!put.ok) throw new Error("Unggah ke penyimpanan gagal (kode " + put.status + ").");
+      await workerCall("/konfirmasi", { ember: ember, kunci: kunci });
+    }
+    function posterDariVideo(file) {
+      return new Promise(function (resolve, reject) {
+        var url = URL.createObjectURL(file);
+        var v = document.createElement("video");
+        var dur = 0;
+        v.muted = true; v.playsInline = true; v.preload = "auto";
+        v.onloadedmetadata = function () {
+          dur = v.duration || 0;
+          try { v.currentTime = Math.min(0.5, dur / 2 || 0.5); } catch (_) { URL.revokeObjectURL(url); reject(new Error("Video tidak terbaca.")); }
+        };
+        v.onseeked = function () {
+          try {
+            var scale = Math.min(1, 720 / (v.videoWidth || 720));
+            var cv = document.createElement("canvas");
+            cv.width = Math.max(2, Math.round((v.videoWidth || 720) * scale));
+            cv.height = Math.max(2, Math.round((v.videoHeight || 1280) * scale));
+            cv.getContext("2d").drawImage(v, 0, 0, cv.width, cv.height);
+            URL.revokeObjectURL(url);
+            cv.toBlob(function (b) { b ? resolve({ blob: b, dur: dur }) : reject(new Error("Poster gagal dibuat.")); }, "image/jpeg", 0.85);
+          } catch (err) { URL.revokeObjectURL(url); reject(err); }
+        };
+        v.onerror = function () { URL.revokeObjectURL(url); reject(new Error("Video tidak terbaca oleh peramban.")); };
+        v.src = url;
+      });
+    }
+    videoForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var file = document.getElementById("videoFile").files[0];
+      if (!file) return;
+      var btn = videoForm.querySelector('button[type="submit"]');
+      btn.disabled = true; setMsg(videoForm, "Menyiapkan video & poster…");
+      try {
+        var poster = await posterDariVideo(file);
+        if (poster.dur > 61) throw new Error("Durasi video " + Math.round(poster.dur) + " detik — melebihi batas 60 detik dari aplikasi. Ekspor ulang replay-mu lebih pendek.");
+        var privat = document.getElementById("videoVis").value === "privat";
+        var ember = privat ? "privat" : "publik";
+        var stem = Date.now() + "-" + Math.random().toString(36).slice(2, 9);
+        var kunciV = me + "/posting/" + stem + ".mp4";
+        var kunciP = me + "/posting/" + stem + "-poster.jpg";
+        setMsg(videoForm, "Mengunggah video ke server…");
+        await unggahR2(ember, kunciV, file);
+        await unggahR2(ember, kunciP, poster.blob);
+        var ins = await c.from("posts").insert({
+          user_id: me, jenis: "video",
+          caption: document.getElementById("videoCaption").value.trim() || null,
+          lokasi_nama: document.getElementById("videoLokasi").value.trim() || null,
+          media: [{ v: kunciV, poster: kunciP, ember: ember, durasi_video: Math.round(poster.dur) }],
+          visibilitas: privat ? "privat" : "publik",
+          status_moderasi: "tampil"
+        });
+        if (ins.error) throw ins.error;
+        videoForm.reset(); videoForm.hidden = true; composerPanel.hidden = true; document.getElementById("toggleComposer").textContent = "Buat Postingan";
+        K.toast("Postingan video diterbitkan dari server.");
+        await renderFeed();
+      } catch (err) {
+        setMsg(videoForm, "Gagal menerbitkan video: " + (err.message || err));
+      } finally { btn.disabled = false; }
+    });
+
+    /* ===== Mode Kanvas: tempel teks di foto, menyamai aplikasi ===== */
+    var canvasEditor = document.getElementById("canvasEditor");
+    var stage = document.getElementById("canvasStage");
+    var sctx = stage.getContext("2d");
+    var kanvasImg = null, kanvasLayers = [], kanvasSel = -1, dragInfo = null;
+    function gambarKanvas() {
+      sctx.fillStyle = "#000"; sctx.fillRect(0, 0, stage.width, stage.height);
+      if (kanvasImg) {
+        var sc = Math.max(stage.width / kanvasImg.naturalWidth, stage.height / kanvasImg.naturalHeight);
+        var w = kanvasImg.naturalWidth * sc, h = kanvasImg.naturalHeight * sc;
+        sctx.drawImage(kanvasImg, (stage.width - w) / 2, (stage.height - h) / 2, w, h);
+      }
+      kanvasLayers.forEach(function (L, i) {
+        sctx.font = "700 " + L.size + "px Inter, sans-serif";
+        sctx.textAlign = "center";
+        if (i === kanvasSel) {
+          var tw = sctx.measureText(L.text).width;
+          sctx.save(); sctx.strokeStyle = "rgba(23,206,143,.9)"; sctx.setLineDash([8, 6]);
+          sctx.strokeRect(L.x - tw / 2 - 10, L.y - L.size - 8, tw + 20, L.size + 24); sctx.restore();
+        }
+        sctx.fillStyle = L.color;
+        sctx.fillText(L.text, L.x, L.y);
+      });
+    }
+    document.getElementById("fotoKanvasBtn").addEventListener("click", function () {
+      var f = (document.getElementById("fotoFiles").files || [])[0];
+      if (!f) { setMsg(fotoForm, "Pilih satu foto dulu, baru edit di Kanvas."); return; }
+      var url = URL.createObjectURL(f);
+      var img = new Image();
+      img.onload = function () {
+        kanvasImg = img; kanvasLayers = []; kanvasSel = -1;
+        canvasEditor.hidden = false;
+        gambarKanvas();
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); setMsg(fotoForm, "Foto tidak terbaca untuk Kanvas."); };
+      img.src = url;
+    });
+    document.getElementById("canvasClose").addEventListener("click", function () { canvasEditor.hidden = true; });
+    document.getElementById("canvasAddText").addEventListener("click", function () {
+      var t = document.getElementById("canvasText").value.trim();
+      if (!t) return;
+      kanvasLayers.push({ text: t, color: document.getElementById("canvasColor").value, size: parseInt(document.getElementById("canvasSize").value, 10) || 64, x: stage.width / 2, y: stage.height - 150 - kanvasLayers.length * 90 });
+      kanvasSel = kanvasLayers.length - 1;
+      document.getElementById("canvasText").value = "";
+      gambarKanvas();
+    });
+    document.getElementById("canvasColor").addEventListener("change", function () { if (kanvasSel >= 0) { kanvasLayers[kanvasSel].color = this.value; gambarKanvas(); } });
+    document.getElementById("canvasSize").addEventListener("input", function () { if (kanvasSel >= 0) { kanvasLayers[kanvasSel].size = parseInt(this.value, 10) || 64; gambarKanvas(); } });
+    document.getElementById("canvasDelText").addEventListener("click", function () { if (kanvasSel >= 0) { kanvasLayers.splice(kanvasSel, 1); kanvasSel = -1; gambarKanvas(); } });
+    function titikStage(e) {
+      var r = stage.getBoundingClientRect();
+      return { x: (e.clientX - r.left) * stage.width / r.width, y: (e.clientY - r.top) * stage.height / r.height };
+    }
+    stage.addEventListener("pointerdown", function (e) {
+      var p = titikStage(e);
+      for (var i = kanvasLayers.length - 1; i >= 0; i--) {
+        var L = kanvasLayers[i];
+        sctx.font = "700 " + L.size + "px Inter, sans-serif";
+        var tw = sctx.measureText(L.text).width;
+        if (Math.abs(p.x - L.x) <= tw / 2 + 12 && p.y <= L.y + 12 && p.y >= L.y - L.size - 12) {
+          kanvasSel = i; dragInfo = { dx: p.x - L.x, dy: p.y - L.y };
+          stage.setPointerCapture(e.pointerId);
+          gambarKanvas();
+          return;
+        }
+      }
+      kanvasSel = -1; gambarKanvas();
+    });
+    stage.addEventListener("pointermove", function (e) {
+      if (!dragInfo || kanvasSel < 0) return;
+      var p = titikStage(e);
+      kanvasLayers[kanvasSel].x = p.x - dragInfo.dx;
+      kanvasLayers[kanvasSel].y = p.y - dragInfo.dy;
+      gambarKanvas();
+    });
+    stage.addEventListener("pointerup", function () { dragInfo = null; });
+    document.getElementById("canvasApply").addEventListener("click", function () {
+      var wasSel = kanvasSel; kanvasSel = -1; gambarKanvas();
+      stage.toBlob(function (b) {
+        kanvasSel = wasSel;
+        if (!b) { setMsg(fotoForm, "Hasil kanvas gagal dibuat."); return; }
+        kanvasEditedFile = new File([b], "kanvas-" + Date.now() + ".jpg", { type: "image/jpeg" });
+        canvasEditor.hidden = true;
+        setMsg(fotoForm, "Foto hasil Kanvas siap — ketuk Terbitkan Foto untuk mengunggahnya.");
+      }, "image/jpeg", 0.9);
     });
 
     await renderFeed();

@@ -13,11 +13,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/member.css?v=20261105-2">
+<link rel="stylesheet" href="assets/member.css?v=20261105-3">
 <style>
 /* Sistem Badge profil — gaya kritis sejajar halaman (anti cache CSS lama) */
 .badge-pill img.bp-img,.badge-chip img.bp-img{width:16px;height:16px;border-radius:50%;margin-right:4px;vertical-align:-3px}
 .badge-art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.kicau-list{display:flex;flex-direction:column;gap:9px}
+.kicau-card{display:block;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:11px 13px;text-decoration:none;color:var(--txt)}
+.kicau-card p{margin:4px 0;font-size:14px;line-height:1.55;overflow-wrap:anywhere}
+.kicau-card small{color:var(--mut)}
+.kicau-tag{font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--mint)}
 .badge-art{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center}
 .badge-art img{width:100%;max-width:150px;height:auto;display:block;margin:0 auto}
 .badge-art b{display:block;font-size:11px;margin-top:4px}
@@ -64,7 +69,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
 <script src="assets/auth.js?v=20261027-4"></script>
 <script src="assets/badge-data.js"></script>
-<script src="assets/member.js?v=20261105-2"></script>
+<script src="assets/member.js?v=20261105-3"></script>
 <script>
 (function () {
   "use strict";
@@ -128,6 +133,16 @@
       inner = '<span class="tile-text">' + K.esc(post.caption || "Postingan") + "</span>";
     }
     return '<a class="post-tile" href="postingan.html?id=' + encodeURIComponent(post.id) + '">' + inner + badges + "</a>";
+  }
+  /* Postingan teks murni = segmen Kicau Mania (aturan aplikasi sejak
+     3 Nov 2026): teks tidak jadi tile grid, tampil sebagai kartu. */
+  function isKicau(post) {
+    if (post.jenis === "foto" || post.jenis === "gpx" || post.jenis === "video") return false;
+    if (K.photoItems(post).length) return false;
+    return String(post.caption || "").trim().length > 0;
+  }
+  function kicauCardHTML(post) {
+    return '<a class="kicau-card" href="postingan.html?id=' + encodeURIComponent(post.id) + '"><span class="kicau-tag">KICAU</span><p>' + K.esc(post.caption || "") + "</p><small>" + K.esc(K.relTime(post.created_at)) + "</small></a>";
   }
   function openSheet(el) { el.hidden = false; document.body.style.overflow = "hidden"; }
   function closeSheets() {
@@ -225,8 +240,13 @@
           '<p style="margin-top:16px"><a href="badge.html">Lihat Koleksi Badge lengkap — 75 badge →</a></p>' +
           "</div>";
       }
+      var kicau = currentPosts.filter(isKicau);
+      var gridPosts = currentPosts.filter(function (p) { return !isKicau(p); });
       if (!currentPosts.length) return '<div class="empty" style="margin-top:12px">Belum ada postingan tampil dari profil ini.</div>';
-      return '<div class="post-grid">' + currentPosts.map(tileHTML).join("") + "</div>";
+      var htmlPosts = "";
+      if (gridPosts.length) htmlPosts += '<div class="post-grid">' + gridPosts.map(tileHTML).join("") + "</div>";
+      if (kicau.length) htmlPosts += '<h3 style="margin:20px 0 8px">Kicau Mania</h3><div class="kicau-list">' + kicau.map(kicauCardHTML).join("") + "</div>";
+      return htmlPosts;
     }
     async function loadProfile() {
       root.innerHTML = '<p class="loading">Memuat profil dari server…</p>';
@@ -254,6 +274,21 @@
       var postsRes = await postsQuery;
       if (postsRes.error) throw postsRes.error;
       currentPosts = postsRes.data || [];
+      /* Aktivitas Terakhirmu (profil sendiri) — di aplikasi dibaca dari
+         jurnal perangkat; di web dibaca dari Replay GPX terbaruku yang
+         terbit ke server, data aktivitas yang sama-sama terlihat. */
+      var aktivitasHTML = "";
+      if (own) {
+        var gpxPosts = currentPosts.filter(function (x) { return x.jenis === "gpx"; });
+        if (gpxPosts.length) {
+          var gp = gpxPosts[0];
+          var gm = K.mediaItems(gp)[0] || {};
+          var durT = gm.dur ? Math.floor(gm.dur / 3600) + "j " + Math.round((gm.dur % 3600) / 60) + "m" : "—";
+          aktivitasHTML = '<section class="card" style="margin-top:14px"><p class="kicker">aktivitas terakhirmu</p>' +
+            '<h3 style="margin:2px 0 6px"><a href="postingan.html?id=' + encodeURIComponent(gp.id) + '" style="color:var(--txt);text-decoration:none">' + K.esc(gm.judul || gp.lokasi_nama || "Replay GPX") + "</a></h3>" +
+            '<p class="meta-line">' + K.fmtNum(gm.km || 0) + " km · " + durT + " · naik " + K.fmtNum(gm.naik || 0) + " m · " + K.esc(K.relTime(gp.created_at)) + "</p></section>";
+        }
+      }
       var sosial = p.sosial || {};
       var namaPlatform = { instagram: "Instagram", tiktok: "TikTok", threads: "Threads", facebook: "Facebook" };
       var chips = "";
@@ -281,6 +316,7 @@
         "</div>" +
         actions +
         "</section>" +
+        aktivitasHTML +
         '<div class="prof-tabs" role="tablist" aria-label="Isi profil">' +
         '<button type="button" role="tab" data-tab="postingan" class="' + (activeTab === "postingan" ? "active" : "") + '">▦ Postingan</button>' +
         '<button type="button" role="tab" data-tab="lencana" class="' + (activeTab === "lencana" ? "active" : "") + '">★ Lencana</button>' +
