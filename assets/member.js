@@ -598,15 +598,49 @@
         if (res.error) throw res.error;
         var rows = res.data || [];
         if (!rows.length) { list.innerHTML = '<p class="pcomment-load">Belum ada komentar. Mulai percakapan jalur ini.</p>'; return; }
+        var likeRes = await c.from("comment_likes").select("comment_id,user_id").in("comment_id", rows.map(function (r) { return r.id; }));
+        if (likeRes.error) throw likeRes.error;
+        var likeCount = {}, likedByMe = {};
+        (likeRes.data || []).forEach(function (l) {
+          likeCount[l.comment_id] = (likeCount[l.comment_id] || 0) + 1;
+          if (l.user_id === me) likedByMe[l.comment_id] = true;
+        });
         var authors = await profilesByIds(rows.map(function (r) { return r.user_id; }));
-        list.innerHTML = rows.map(function (cm) {
+        function commentRow(cm) {
           var a = authors.get(cm.user_id) || { id: cm.user_id, nama: "Pendaki" };
-          return '<div class="pcomment"><p><a class="pcomment-label" href="' + esc(profileLink(a)) + '">' + esc(commentLabel(a)) + "</a>: " + esc(cm.isi) + "</p>" +
-            (cm.user_id === me ? '<button type="button" class="pcomment-del" data-del-comment="' + esc(cm.id) + '">Hapus</button>' : "") + "</div>";
+          return '<div class="pcomment"><div class="pcomment-main"><p><a class="pcomment-label" href="' + esc(profileLink(a)) + '">' + esc(commentLabel(a)) + "</a>: " + esc(cm.isi) + "</p>" +
+            '<div class="pcomment-acts">' +
+            '<button type="button" class="pclike' + (likedByMe[cm.id] ? " on" : "") + '" data-like-comment="' + esc(cm.id) + '">♥ <span data-clike-count>' + (likeCount[cm.id] || 0) + "</span></button>" +
+            (cm.parent_id ? "" : '<button type="button" class="pcact" data-reply-comment="' + esc(cm.id) + '" data-reply-label="' + esc(commentLabel(a)) + '">Balas</button>') +
+            (cm.user_id === me ? '<button type="button" class="pcomment-del" data-del-comment="' + esc(cm.id) + '">Hapus</button>' : "") +
+            "</div></div></div>";
+        }
+        var repliesBy = {};
+        rows.forEach(function (cm) { if (cm.parent_id) (repliesBy[cm.parent_id] = repliesBy[cm.parent_id] || []).push(cm); });
+        list.innerHTML = rows.filter(function (cm) { return !cm.parent_id; }).map(function (cm) {
+          var reps = repliesBy[cm.id] || [];
+          var html = commentRow(cm);
+          if (reps.length) {
+            html += '<button type="button" class="pcomment-toggle" data-toggle-replies="' + esc(cm.id) + '">Lihat ' + reps.length + " balasan</button>" +
+              '<div class="pcomment-replies" data-replies="' + esc(cm.id) + '" hidden>' + reps.map(commentRow).join("") + "</div>";
+          }
+          return html;
         }).join("");
       } catch (err) {
         list.innerHTML = '<p class="pcomment-load error">Komentar gagal dimuat: ' + esc(err.message || err) + "</p>";
       }
+    }
+    function clearReply(card) {
+      var form = card.querySelector("[data-comment-form]");
+      if (form) delete form.dataset.replyTo;
+      var chip = card.querySelector("[data-reply-chip]");
+      if (chip) chip.hidden = true;
+    }
+    function expandReplies(card, parentId) {
+      var box = card.querySelector('[data-replies="' + CSS.escape(parentId) + '"]');
+      if (box) box.hidden = false;
+      var tog = card.querySelector('[data-toggle-replies="' + CSS.escape(parentId) + '"]');
+      if (tog) tog.textContent = "Sembunyikan balasan";
     }
     async function syncCommentCount(card, postId) {
       try {
@@ -709,6 +743,54 @@
         }
         return;
       }
+      var likeComment = e.target.closest("[data-like-comment]");
+      if (likeComment && card) {
+        var cid = likeComment.getAttribute("data-like-comment");
+        var wasLiked = likeComment.classList.contains("on");
+        likeComment.disabled = true;
+        try {
+          var rl = wasLiked
+            ? await c.from("comment_likes").delete().eq("comment_id", cid).eq("user_id", me)
+            : await c.from("comment_likes").insert({ comment_id: cid, user_id: me });
+          if (rl.error) throw rl.error;
+          likeComment.classList.toggle("on", !wasLiked);
+          var cntEl = likeComment.querySelector("[data-clike-count]");
+          if (cntEl) cntEl.textContent = Math.max(0, (parseInt(cntEl.textContent, 10) || 0) + (wasLiked ? -1 : 1));
+        } catch (err) {
+          toast("Suka komentar gagal diubah: " + (err.message || err));
+        }
+        likeComment.disabled = false;
+        return;
+      }
+      var toggleRep = e.target.closest("[data-toggle-replies]");
+      if (toggleRep && card) {
+        var repBox = card.querySelector('[data-replies="' + CSS.escape(toggleRep.getAttribute("data-toggle-replies")) + '"]');
+        if (repBox) {
+          var openingRep = repBox.hidden;
+          repBox.hidden = !openingRep;
+          toggleRep.textContent = openingRep ? "Sembunyikan balasan" : "Lihat " + repBox.querySelectorAll(".pcomment").length + " balasan";
+        }
+        return;
+      }
+      var replyBtn = e.target.closest("[data-reply-comment]");
+      if (replyBtn && card) {
+        var form = card.querySelector("[data-comment-form]");
+        if (!form) return;
+        form.dataset.replyTo = replyBtn.getAttribute("data-reply-comment");
+        var chip = card.querySelector("[data-reply-chip]");
+        if (!chip) {
+          chip = document.createElement("div");
+          chip.className = "preply-chip";
+          chip.setAttribute("data-reply-chip", "");
+          form.parentNode.insertBefore(chip, form);
+        }
+        chip.innerHTML = "Membalas <b>" + esc(replyBtn.getAttribute("data-reply-label")) + '</b> <button type="button" data-cancel-reply aria-label="Batal membalas">✕</button>';
+        chip.hidden = false;
+        var inp = form.querySelector('input[name="isi"]');
+        if (inp) inp.focus();
+        return;
+      }
+      if (e.target.closest("[data-cancel-reply]") && card) { clearReply(card); return; }
       var btn = e.target.closest("[data-act]");
       if (!btn || !card) { closeMenus(null); return; }
       var postId = card.getAttribute("data-post-card");
@@ -760,13 +842,18 @@
       if (!isi) return;
       var btn = form.querySelector('button[type="submit"]');
       btn.disabled = true;
+      var replyTo = form.dataset.replyTo || null;
       try {
-        var res = await c.from("comments").insert({ post_id: postId, user_id: me, isi: isi });
+        var payload = { post_id: postId, user_id: me, isi: isi };
+        if (replyTo) payload.parent_id = replyTo;
+        var res = await c.from("comments").insert(payload);
         if (res.error) throw res.error;
         input.value = "";
+        clearReply(card);
         var sec = card.querySelector("[data-comments]");
         if (sec) sec.dataset.loaded = "1";
         await loadComments(card, postId);
+        if (replyTo) expandReplies(card, replyTo);
         await syncCommentCount(card, postId);
       } catch (err) {
         toast("Komentar gagal dikirim ke server: " + (err.message || err));
