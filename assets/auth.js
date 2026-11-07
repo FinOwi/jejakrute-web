@@ -25,12 +25,21 @@
     return "assets/logo/logo-symbol-reversed.png";
   }
   function currentPageUrl() {
-    return location.href.split("#")[0];
+    /* Tujuan kembali OAuth dikunci ke halaman ini sendiri di origin
+       resmi — tanpa query & tanpa fragment: parameter asing dari
+       tautan yang dibagikan tidak boleh ikut menentukan ke mana
+       pengguna (dan sesi) dikembalikan sesudah masuk. */
+    return location.origin + location.pathname;
   }
   function ensureClient() {
     if (client) return true;
     if (!window.supabase || !window.supabase.createClient) return false;
-    client = window.supabase.createClient(SB_URL, SB_KEY);
+    /* PKCE eksplisit (audit 7 Nov 2026): aliran OAuth cadangan tidak
+       pernah menaruh token di URL redirect — kode otorisasi hanya
+       bisa ditukar dengan verifier yang tersimpan di peramban ini. */
+    client = window.supabase.createClient(SB_URL, SB_KEY, {
+      auth: { flowType: "pkce" }
+    });
     return true;
   }
 
