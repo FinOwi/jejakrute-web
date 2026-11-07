@@ -575,7 +575,7 @@
         : '<button type="button" data-menu-act="report">Laporkan</button>') +
       "</span></span></span></div>" +
       (post.status_moderasi && post.status_moderasi !== "tampil" ? '<div class="pmod"><span class="pill belum">' + esc(post.status_moderasi) + "</span></div>" : "") +
-      (post.caption ? '<p class="pcaption">' + esc(post.caption) + "</p>" : "") +
+      (post.caption && post.caption !== "(postingan foto)" ? '<p class="pcaption">' + esc(post.caption) + "</p>" : "") +
       media +
       '<div class="pactions">' +
       '<button type="button" class="pact' + (post._liked ? " liked" : "") + '" data-act="like" aria-pressed="' + (post._liked ? "true" : "false") + '">' + (post._liked ? ICONS.heartFill : ICONS.heart) + "<b data-like-count>" + fmtNum(post._likeCount) + "</b></button>" +
