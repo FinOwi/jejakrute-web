@@ -26,7 +26,7 @@ async function sbRpc(fn,body){
 /* Ambil rute komunitas (status menunggu/disetujui memang terbaca publik via RLS)
    + peta kontributor dari profiles (terbaca publik). */
 async function ambilRuteKomunitas(lokasiId){
-  let q="community_routes?select=id,user_id,nama,lokasi_id,lokasi_nama,gpx_path,jarak_km,naik_m,status,unduhan,pemakaian,created_at&order=created_at.desc&limit=100";
+  let q="community_routes?select=id,user_id,nama,lokasi_id,lokasi_nama,gpx_path,jarak_km,naik_m,status,unduhan,pemakaian,created_at&order=created_at.desc&limit=200";
   if(lokasiId) q+="&lokasi_id=eq."+encodeURIComponent(lokasiId);
   const routes=await sbGet(q);
   if(!routes.length) return routes;
